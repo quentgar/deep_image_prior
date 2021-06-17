@@ -42,7 +42,7 @@ class encoder_block(nn.Module):
         return x
       
 class decoder_block(nn.Module):
-    def __init__(self, in_c, out_c, filter_size_up):
+    def __init__(self, in_c, out_c, filter_size_up, up_sampling_mode='bilinear'):
         super().__init__()
 
         self.bn1 = nn.BatchNorm2d(in_c) # Possible erreur lien entre encoder decoder et skip
@@ -51,7 +51,7 @@ class decoder_block(nn.Module):
 
         self.conv2 = conv_block(out_c, out_c, 1)
 
-        self.up = nn.Upsample(scale_factor=2, mode='bilinear')
+        self.up = nn.Upsample(scale_factor=2, mode=up_sampling_mode)
 
     def forward(self, inputs, skip):
       
