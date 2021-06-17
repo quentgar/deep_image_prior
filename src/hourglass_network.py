@@ -67,7 +67,7 @@ class build_hourglass(nn.Module):
     
     def __init__(self,input_depth=32,output_depth=3,
                  num_channels_down=[16, 32, 64, 128, 128], num_channels_up=[16, 32, 64, 128, 128],
-                 num_channels_skip=[4, 4, 4, 4, 4], filter_size_down=3, filter_size_up=3, filter_skip_size=1, num_scales=5):
+                 num_channels_skip=[4, 4, 4, 4, 4], filter_size_down=3, filter_size_up=3, filter_skip_size=1, num_scales=5, up_samp_mode='bilinear'):
         super().__init__()
 
         num_channels_down = [num_channels_down]*num_scales if isinstance(num_channels_down, int) else num_channels_down
@@ -91,9 +91,9 @@ class build_hourglass(nn.Module):
 
           """ Decoder """
           if i == (num_scales-1):
-            attributes.append(('d'+str(i+1),decoder_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up).type(torch.cuda.FloatTensor)))
+            attributes.append(('d'+str(i+1),decoder_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sample_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
           else:
-            attributes.append(('d'+str(i+1),decoder_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up).type(torch.cuda.FloatTensor)))
+            attributes.append(('d'+str(i+1),decoder_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sample_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
 
 
         for key, value in attributes:
