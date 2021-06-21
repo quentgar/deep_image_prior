@@ -1,7 +1,9 @@
 import torch
 import torch.nn as nn
 
-""" Convolutional block """
+""" Convolutional block:
+    It follows a two 3x3 convolutional layer, each followed by a batch normalization and a relu activation.
+"""
 class conv_block(nn.Module):
     def __init__(self, in_c, out_c, k_size):
         super().__init__()
@@ -19,8 +21,7 @@ class conv_block(nn.Module):
         x = self.relu(x)
 
         return x
-      
-""" Encoder block """
+
 class encoder_block(nn.Module):
     def __init__(self, in_c, out_c, filter_size_down):
         super().__init__()
@@ -40,7 +41,7 @@ class encoder_block(nn.Module):
         x = self.conv2(x)
 
         return x
-      
+
 class decoder_block(nn.Module):
     def __init__(self, in_c, out_c, filter_size_up, up_sampling_mode='bilinear'):
         super().__init__()
@@ -54,7 +55,7 @@ class decoder_block(nn.Module):
         self.up = nn.Upsample(scale_factor=2, mode=up_sampling_mode)
 
     def forward(self, inputs, skip):
-      
+
         x = torch.cat([inputs, skip], axis=1)
         x = self.up(x)
         x = self.bn1(x)
@@ -62,7 +63,28 @@ class decoder_block(nn.Module):
         x = self.conv2(x)
 
         return x
-    
+
+class decoder_noskip_block(nn.Module):
+    def __init__(self, in_c, out_c, filter_size_up, up_sampling_mode='bilinear'):
+        super().__init__()
+
+        self.bn1 = nn.BatchNorm2d(in_c) # Possible erreur lien entre encoder decoder et skip
+
+        self.conv1 = conv_block(in_c,out_c,filter_size_up)
+
+        self.conv2 = conv_block(out_c, out_c, 1)
+
+        self.up = nn.Upsample(scale_factor=2, mode=up_sampling_mode)
+
+    def forward(self, inputs):
+
+        x = self.up(inputs)
+        x = self.bn1(x)
+        x = self.conv1(x)
+        x = self.conv2(x)
+
+        return x
+
 class build_hourglass(nn.Module):
     
     def __init__(self,input_depth=32,output_depth=3,
@@ -74,6 +96,8 @@ class build_hourglass(nn.Module):
         num_channels_up =   [num_channels_up]*num_scales if isinstance(num_channels_up, int) else num_channels_up
         num_channels_skip = [num_channels_skip]*num_scales if isinstance(num_channels_skip, int) else num_channels_skip
 
+        self.num_channels_skip = num_channels_skip
+
         assert len(num_channels_down) == len(num_channels_up) == len(num_channels_skip)
 
         self.num_scales = num_scales 
@@ -84,43 +108,31 @@ class build_hourglass(nn.Module):
           """ Encoder et Skip"""
           if i == 0:
             attributes.append(('e'+str(i+1),encoder_block(input_depth, num_channels_down[0],filter_size_down).type(torch.cuda.FloatTensor)))
-            attributes.append(('s'+str(i+1),conv_block(num_channels_down[0], num_channels_skip[i], filter_skip_size).type(torch.cuda.FloatTensor)))
+            if num_channels_skip[i] != 0: # Ne pas créer de bloc skip s'il n'en existe pas
+              attributes.append(('s'+str(i+1),conv_block(num_channels_down[0], num_channels_skip[i], filter_skip_size).type(torch.cuda.FloatTensor)))
           else:
             attributes.append(('e'+str(i+1),encoder_block(num_channels_down[i-1], num_channels_down[i], filter_size_down).type(torch.cuda.FloatTensor)))
-            attributes.append(('s'+str(i+1),conv_block(num_channels_down[i-1], num_channels_skip[i], filter_skip_size).type(torch.cuda.FloatTensor)))
+            if num_channels_skip[i] != 0:
+              attributes.append(('s'+str(i+1),conv_block(num_channels_down[i], num_channels_skip[i], filter_skip_size).type(torch.cuda.FloatTensor)))
 
           """ Decoder """
           if i == (num_scales-1):
-            attributes.append(('d'+str(i+1),decoder_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sample_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
+            "Fond du réseau"
+            if num_channels_skip[i] != 0:
+              attributes.append(('d'+str(i+1),decoder_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
+            else: # Pas de skip
+              attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
           else:
-            attributes.append(('d'+str(i+1),decoder_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sample_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
+            if num_channels_skip[i] != 0:
+              attributes.append(('d'+str(i+1),decoder_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
+            else:
+              attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
 
 
         for key, value in attributes:
           setattr(self, key, value)
 
-        """
-        self.e1 = encoder_block(32, 128)
-        self.e2 = encoder_block(128, 128)
-        self.e3 = encoder_block(128, 128)
-        self.e4 = encoder_block(128, 128)
-        self.e5 = encoder_block(128, 128)
-
-
-        self.d1 = decoder_block(128, 128)
-        self.d2 = decoder_block(128, 128)
-        self.d3 = decoder_block(128, 128)
-        self.d4 = decoder_block(128, 128)
-        self.d5 = decoder_block(128, 128)
-
-
-        self.s1 = conv_block(128,4,1)
-        self.s2 = conv_block(128,4,1)
-        self.s3 = conv_block(128,4,1)
-        self.s4 = conv_block(128,4,1)
-        self.s5 = conv_block(128,4,1)"""
-
-        self.conv = nn.Conv2d(num_channels_up[-1],output_depth,1,padding=0, padding_mode='reflect')
+        self.conv = nn.Conv2d(num_channels_up[0],output_depth,1,padding=0, padding_mode='reflect')
         self.act = nn.Sigmoid()
 
 
@@ -133,40 +145,26 @@ class build_hourglass(nn.Module):
           else:
             encoder.append(getattr(self, 'e'+str(i+1))(encoder[i-1]))
 
-
-        """ Encoder
-        e1 = self.e1(inputs)
-        e2 = self.e2(e1)
-        e3 = self.e3(e2)
-        e4 = self.e4(e3)
-        e5 = self.e5(e4)"""
-
-
         skip = []
         for i in range(self.num_scales):
-            skip.append(getattr(self, 's'+str(i+1))(encoder[i]))
-
-        """ Skip 
-        s1 = self.s1(e1)
-        s2 = self.s2(e2)
-        s3 = self.s3(e3)
-        s4 = self.s4(e4)
-        s5 = self.s5(e5)"""
+            if self.num_channels_skip[i] != 0:
+              skip.append(getattr(self, 's'+str(i+1))(encoder[i]))
+            else:
+              skip.append(1)
 
         decoder = []
-        for i in range(self.num_scales):
-          if i == 0:
-            decoder.append(getattr(self, 'd'+str(i+1))(encoder[-1],skip[-1]))
+        for i in range(self.num_scales,0,-1):
+          if i == self.num_scales:
+            if self.num_channels_skip[i-1] != 0:
+              decoder.append(getattr(self, 'd'+str(i))(encoder[-1],skip[-1]))
+            else:
+              decoder.append(getattr(self, 'd'+str(i))(encoder[-1]))
           else:
-            decoder.append(getattr(self, 'd'+str(i+1))(decoder[i-1],skip[self.num_scales-i-1]))
-
-        """ Decoder
-        d1 = self.d1(e5, s5)
-        d2 = self.d2(d1, s4)
-        d3 = self.d3(d2, s3)
-        d4 = self.d4(d3, s2)
-        d5 = self.d5(d4, s1)"""
-
+            if self.num_channels_skip[i-1] != 0:
+              decoder.append(getattr(self, 'd'+str(i))(decoder[self.num_scales-i-1],skip[i-1]))
+            else:
+              decoder.append(getattr(self, 'd'+str(i))(decoder[self.num_scales-i-1]))
+        
         c = self.conv(decoder[-1])
         output = self.act(c)
 
