@@ -25,8 +25,10 @@ class conv_block(nn.Module):
 class encoder_block(nn.Module):
     def __init__(self, in_c, out_c, filter_size_down):
         super().__init__()
+        
+        to_pad = int((filter_size_down-1)/2)
 
-        self.conv1 = nn.Conv2d(in_c, out_c, kernel_size=filter_size_down, padding=1, stride=2, padding_mode='reflect')
+        self.conv1 = nn.Conv2d(in_c, out_c, kernel_size=filter_size_down, padding=to_pad, stride=2, padding_mode='reflect')
         self.bn1 = nn.BatchNorm2d(out_c)
         self.relu = nn.LeakyReLU(0.2, inplace=True)
 
