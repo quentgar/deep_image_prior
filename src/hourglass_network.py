@@ -45,14 +45,15 @@ class encoder_block(nn.Module):
         return x
 
 class decoder_block(nn.Module):
-    def __init__(self, in_c, out_c, filter_size_up, up_sampling_mode='bilinear'):
+    def __init__(self, in_c, out_c, filter_size_up, up_sampling_mode='bilinear',need1x1_up=True):
         super().__init__()
 
         self.bn1 = nn.BatchNorm2d(in_c) # Possible erreur lien entre encoder decoder et skip
 
         self.conv1 = conv_block(in_c,out_c,filter_size_up)
-
-        self.conv2 = conv_block(out_c, out_c, 1)
+        
+        if need1x1_up:
+            self.conv2 = conv_block(out_c, out_c, 1)
 
         self.up = nn.Upsample(scale_factor=2, mode=up_sampling_mode)
 
@@ -62,19 +63,21 @@ class decoder_block(nn.Module):
         x = self.up(x)
         x = self.bn1(x)
         x = self.conv1(x)
-        x = self.conv2(x)
+        if need1x1_up:
+            x = self.conv2(x)
 
         return x
 
 class decoder_noskip_block(nn.Module):
-    def __init__(self, in_c, out_c, filter_size_up, up_sampling_mode='bilinear'):
+    def __init__(self, in_c, out_c, filter_size_up, up_sampling_mode='bilinear', need1x1_up=True):
         super().__init__()
 
         self.bn1 = nn.BatchNorm2d(in_c) # Possible erreur lien entre encoder decoder et skip
 
         self.conv1 = conv_block(in_c,out_c,filter_size_up)
-
-        self.conv2 = conv_block(out_c, out_c, 1)
+        
+        if need1x1_up:
+            self.conv2 = conv_block(out_c, out_c, 1)
 
         self.up = nn.Upsample(scale_factor=2, mode=up_sampling_mode)
 
@@ -83,7 +86,8 @@ class decoder_noskip_block(nn.Module):
         x = self.up(inputs)
         x = self.bn1(x)
         x = self.conv1(x)
-        x = self.conv2(x)
+        if need1x1_up:
+            x = self.conv2(x)
 
         return x
 
@@ -91,7 +95,7 @@ class build_hourglass(nn.Module):
     
     def __init__(self,input_depth=32,output_depth=3,
                  num_channels_down=[16, 32, 64, 128, 128], num_channels_up=[16, 32, 64, 128, 128],
-                 num_channels_skip=[4, 4, 4, 4, 4], filter_size_down=3, filter_size_up=3, filter_skip_size=1, num_scales=5, up_samp_mode='bilinear'):
+                 num_channels_skip=[4, 4, 4, 4, 4], filter_size_down=3, filter_size_up=3, filter_skip_size=1, num_scales=5, up_samp_mode='bilinear', need1x1_up=True):
         super().__init__()
 
         num_channels_down = [num_channels_down]*num_scales if isinstance(num_channels_down, int) else num_channels_down
@@ -121,14 +125,14 @@ class build_hourglass(nn.Module):
           if i == (num_scales-1):
             "Fond du réseau"
             if num_channels_skip[i] != 0:
-              attributes.append(('d'+str(i+1),decoder_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
+              attributes.append(('d'+str(i+1),decoder_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
             else: # Pas de skip
-              attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
+              attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
           else:
             if num_channels_skip[i] != 0:
-              attributes.append(('d'+str(i+1),decoder_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
+              attributes.append(('d'+str(i+1),decoder_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
             else:
-              attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
+              attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
 
 
         for key, value in attributes:
