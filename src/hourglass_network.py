@@ -47,6 +47,8 @@ class encoder_block(nn.Module):
 class decoder_block(nn.Module):
     def __init__(self, in_c, out_c, filter_size_up, up_sampling_mode='bilinear',need1x1_up=True):
         super().__init__()
+        
+        self.need = need1x1_up
 
         self.bn1 = nn.BatchNorm2d(in_c) # Possible erreur lien entre encoder decoder et skip
 
@@ -63,7 +65,7 @@ class decoder_block(nn.Module):
         x = self.up(x)
         x = self.bn1(x)
         x = self.conv1(x)
-        if need1x1_up:
+        if self.need:
             x = self.conv2(x)
 
         return x
@@ -71,6 +73,8 @@ class decoder_block(nn.Module):
 class decoder_noskip_block(nn.Module):
     def __init__(self, in_c, out_c, filter_size_up, up_sampling_mode='bilinear', need1x1_up=True):
         super().__init__()
+        
+        self.need = need1x1_up
 
         self.bn1 = nn.BatchNorm2d(in_c) # Possible erreur lien entre encoder decoder et skip
 
@@ -86,7 +90,7 @@ class decoder_noskip_block(nn.Module):
         x = self.up(inputs)
         x = self.bn1(x)
         x = self.conv1(x)
-        if need1x1_up:
+        if self.need:
             x = self.conv2(x)
 
         return x
