@@ -99,7 +99,8 @@ class build_hourglass(nn.Module):
     
     def __init__(self,input_depth=32,output_depth=3,
                  num_channels_down=[16, 32, 64, 128, 128], num_channels_up=[16, 32, 64, 128, 128],
-                 num_channels_skip=[4, 4, 4, 4, 4], filter_size_down=3, filter_size_up=3, filter_skip_size=1, num_scales=5, up_samp_mode='bilinear', need1x1_up=True):
+                 num_channels_skip=[4, 4, 4, 4, 4], filter_size_down=3, filter_size_up=3, filter_skip_size=1,
+                 num_scales=5, up_samp_mode='bilinear', need1x1_up=True, need_sigmoid=True):
         super().__init__()
 
         num_channels_down = [num_channels_down]*num_scales if isinstance(num_channels_down, int) else num_channels_down
@@ -107,6 +108,7 @@ class build_hourglass(nn.Module):
         num_channels_skip = [num_channels_skip]*num_scales if isinstance(num_channels_skip, int) else num_channels_skip
 
         self.num_channels_skip = num_channels_skip
+        self.need_sigmoid = need_sigmoid
 
         assert len(num_channels_down) == len(num_channels_up) == len(num_channels_skip)
 
@@ -176,6 +178,9 @@ class build_hourglass(nn.Module):
               decoder.append(getattr(self, 'd'+str(i))(decoder[self.num_scales-i-1]))
         
         c = self.conv(decoder[-1])
-        output = self.act(c)
+        if self.need_sigmoid:
+            output = self.act(c)
+        else:
+            output = c
 
         return output
