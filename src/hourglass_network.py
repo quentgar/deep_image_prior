@@ -32,7 +32,7 @@ class encoder_block(nn.Module):
             self.pool = nn.MaxPool2d(filter_size_down)
             dim = in_c
 
-        self.conv1 = nn.Conv2d(in_c, dim, kernel_size=filter_size_down, padding=to_pad, stride, padding_mode='reflect')
+        self.conv1 = nn.Conv2d(in_c, dim, kernel_size=filter_size_down, padding=to_pad, stride=stride, padding_mode='reflect')
         self.bn1 = nn.BatchNorm2d(dim)
         self.relu = nn.LeakyReLU(0.2, inplace=True)
 
