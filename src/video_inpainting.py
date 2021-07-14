@@ -49,6 +49,28 @@ mask_path = 'mydata/video/subsea01/mask/01_0000'
 ind_debut = 150
 ind_fin = 169
 
+size = img_np1.shape[1:]
+
+def optimize_perso(optimizer_type, parameters1, parameters2, closure, LR, num_iter, ind_iter):
+    print('Starting optimization with ADAM')
+    optimizer_inpainting = torch.optim.Adam(parameters1, lr=LR)
+    optimizer_recalage = torch.optim.Adam(parameters2, lr=LR)
+
+    iter = num_iter // ind_iter
+    
+    for j in range(iter):
+        for i in range(ind_iter):
+          # Optimiser paramètres inpainting
+          optimizer_inpainting.zero_grad()
+          closure()
+          optimizer_inpainting.step()
+
+        for i in range(ind_iter):
+          # Optimiser paramètres recalage
+          optimizer_recalage.zero_grad()
+          closure()
+          optimizer_recalage.step()
+
 """# Inpainting sur la première image"""
 
 def format_image(img_path, mask_path, imsize, dim_div_by):
