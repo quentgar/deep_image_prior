@@ -30,9 +30,11 @@ class encoder_block(nn.Module):
         
         if stride == 1:
             self.pool = nn.MaxPool2d(filter_size_down)
+            self.pooling = True
             dim = in_c
         else:
             dim = out_c
+            self.pooling = False
 
         self.conv1 = nn.Conv2d(in_c, dim, kernel_size=filter_size_down, padding=to_pad, stride=stride, padding_mode='reflect')
         self.bn1 = nn.BatchNorm2d(dim)
@@ -48,7 +50,8 @@ class encoder_block(nn.Module):
 
         x = self.conv2(x)
         
-        x = self.pool(x)
+        if self.pooling:
+            x = self.pool(x)
 
         return x
 
