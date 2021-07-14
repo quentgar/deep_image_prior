@@ -23,16 +23,20 @@ class conv_block(nn.Module):
         return x
 
 class encoder_block(nn.Module):
-    def __init__(self, in_c, out_c, filter_size_down):
+    def __init__(self, in_c, out_c, filter_size_down, stride=2):
         super().__init__()
         
         to_pad = int((filter_size_down-1)/2)
+        
+        if stride == 1:
+            self.pool = nn.MaxPool2d(filter_size_down)
+            dim = in_c
 
-        self.conv1 = nn.Conv2d(in_c, out_c, kernel_size=filter_size_down, padding=to_pad, stride=2, padding_mode='reflect')
-        self.bn1 = nn.BatchNorm2d(out_c)
+        self.conv1 = nn.Conv2d(in_c, dim, kernel_size=filter_size_down, padding=to_pad, stride, padding_mode='reflect')
+        self.bn1 = nn.BatchNorm2d(dim)
         self.relu = nn.LeakyReLU(0.2, inplace=True)
 
-        self.conv2 = conv_block(out_c, out_c, filter_size_down)
+        self.conv2 = conv_block(dim, dim, filter_size_down)
 
     def forward(self, inputs):
       
@@ -41,6 +45,8 @@ class encoder_block(nn.Module):
         x = self.relu(x)
 
         x = self.conv2(x)
+        
+        x = self.pool(x)
 
         return x
 
@@ -100,7 +106,7 @@ class build_hourglass(nn.Module):
     def __init__(self,input_depth=32,output_depth=3,
                  num_channels_down=[16, 32, 64, 128, 128], num_channels_up=[16, 32, 64, 128, 128],
                  num_channels_skip=[4, 4, 4, 4, 4], filter_size_down=3, filter_size_up=3, filter_skip_size=1,
-                 num_scales=5, up_samp_mode='bilinear', need1x1_up=True, need_sigmoid=True):
+                 num_scales=5, up_samp_mode='bilinear', need1x1_up=True, need_sigmoid=True, pooling=False):
         super().__init__()
 
         num_channels_down = [num_channels_down]*num_scales if isinstance(num_channels_down, int) else num_channels_down
@@ -111,6 +117,11 @@ class build_hourglass(nn.Module):
         self.need_sigmoid = need_sigmoid
 
         assert len(num_channels_down) == len(num_channels_up) == len(num_channels_skip)
+        
+        if pooling:
+            stride = 1
+        else:
+            stride = 2
 
         self.num_scales = num_scales 
         
@@ -119,11 +130,11 @@ class build_hourglass(nn.Module):
 
           """ Encoder et Skip"""
           if i == 0:
-            attributes.append(('e'+str(i+1),encoder_block(input_depth, num_channels_down[0],filter_size_down).type(torch.cuda.FloatTensor)))
+            attributes.append(('e'+str(i+1),encoder_block(input_depth, num_channels_down[0],filter_size_down, stride).type(torch.cuda.FloatTensor)))
             if num_channels_skip[i] != 0: # Ne pas créer de bloc skip s'il n'en existe pas
               attributes.append(('s'+str(i+1),conv_block(num_channels_down[0], num_channels_skip[i], filter_skip_size).type(torch.cuda.FloatTensor)))
           else:
-            attributes.append(('e'+str(i+1),encoder_block(num_channels_down[i-1], num_channels_down[i], filter_size_down).type(torch.cuda.FloatTensor)))
+            attributes.append(('e'+str(i+1),encoder_block(num_channels_down[i-1], num_channels_down[i], filter_size_down, stride).type(torch.cuda.FloatTensor)))
             if num_channels_skip[i] != 0:
               attributes.append(('s'+str(i+1),conv_block(num_channels_down[i], num_channels_skip[i], filter_skip_size).type(torch.cuda.FloatTensor)))
 
