@@ -62,13 +62,12 @@ def optimize_perso(optimizer_type, parameters1, parameters2, closure, LR, num_it
         for i in range(ind_iter):
           # Optimiser paramètres inpainting
           optimizer_inpainting.zero_grad()
-          closure()
-          optimizer_inpainting.step()
-
-        for i in range(ind_iter):
           # Optimiser paramètres recalage
           optimizer_recalage.zero_grad()
+            
           closure()
+        
+          optimizer_inpainting.step()
           optimizer_recalage.step()
 
 """# Inpainting sur la première image"""
