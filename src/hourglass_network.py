@@ -29,7 +29,7 @@ class encoder_block(nn.Module):
         to_pad = int((filter_size_down-1)/2)
         
         if stride == 1:
-            self.pool = nn.MaxPool2d(filter_size_down,stride=2)
+            self.pool = nn.MaxPool2d(2)
             self.pooling = True
             dim = in_c
         else:
