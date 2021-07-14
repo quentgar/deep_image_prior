@@ -86,6 +86,11 @@ img_path1 = img_path + str(ind_debut) + '.png'
 mask_path1 = mask_path + str(ind_debut) + '.png'
 img_np1, mask_np1 = format_image(img_path1, mask_path1, imsize, dim_div_by)
 
+r = np.where((img_np1[0,:,:] > 0.6) & (img_np1[1,:,:] > 0.6) & (img_np1[2,:,:] > 0.6), 0, 1)
+t = np.repeat(r[..., np.newaxis], 3, axis=2)
+t = np.array(t,dtype=float)
+mask_np1 = t.transpose(1,0,1)
+
 """## Création du réseau"""
 
 pad = 'reflection' # 'zero'
