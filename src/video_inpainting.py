@@ -35,6 +35,8 @@ from skimage.measure import compare_psnr
 from voxelmorph.torch.layers import SpatialTransformer
 import seaborn as sns
 
+import cv2
+
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark =True
 dtype = torch.cuda.FloatTensor
@@ -87,9 +89,14 @@ mask_path1 = mask_path + str(ind_debut) + '.png'
 img_np1, mask_np1 = format_image(img_path1, mask_path1, imsize, dim_div_by)
 
 r = np.where((img_np1[0,:,:] > 0.6) & (img_np1[1,:,:] > 0.6) & (img_np1[2,:,:] > 0.6), 0, 1)
-t = np.repeat(r[..., np.newaxis], 3, axis=2)
-t = np.array(t,dtype=float)
-mask_np1 = t.transpose(1,0,1)
+t = np.array(r,dtype=float)
+
+res = cv2.resize(t,None,fx=0.1,fy=0.1,interpolation=cv2.INTER_AREA)
+res2 = cv2.resize(res,None,fx=10,fy=10,interpolation=cv2.INTER_CUBIC)
+a = np.where(res2 > 0.9, 1, 0)
+a = np.array(a,dtype=float)
+mask_np1 = np.repeat(a[..., np.newaxis], 3, axis=2)
+mask_np1 = mask_np1.transpose(2,0,1)
 
 """## Création du réseau"""
 
