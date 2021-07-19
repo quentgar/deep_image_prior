@@ -43,7 +43,7 @@ dtype = torch.cuda.FloatTensor
 
 PLOT = True
 imsize = -1
-dim_div_by = 32
+dim_div_by = 64
 
 img_path = 'mydata/video/subsea01/frames/01_0000'
 mask_path = 'mydata/video/subsea01/mask/01_0000'
@@ -83,20 +83,32 @@ def format_image(img_path, mask_path, imsize, dim_div_by):
 
   return img_np, img_mask_np
 
+def crop_perso(img,d=32):
+   new_size = (img.shape[1] - img.shape[1] % d, 
+                img.shape[2] - img.shape[2] % d)
+
+   img_cropped = img[:,
+                     int((img.shape[1] - new_size[0])/2):int((img.shape[1] + new_size[0])/2),
+                     int((img.shape[2] - new_size[1])/2):int((img.shape[2] + new_size[1])/2)]
+                     
+   return img_cropped
+
 img_path1 = img_path + str(ind_debut) + '.png'
 mask_path1 = mask_path + str(ind_debut) + '.png'
 img_np1, mask_np1 = format_image(img_path1, mask_path1, imsize, dim_div_by)
 size = img_np1.shape[1:]
 
-r = np.where((img_np1[0,:,:] > 0.6) & (img_np1[1,:,:] > 0.6) & (img_np1[2,:,:] > 0.6), 0, 1)
+r = np.where((img_np1[0,:,:] > 0.5) & (img_np1[1,:,:] > 0.5) & (img_np1[2,:,:] > 0.5), 0, 1)
 t = np.array(r,dtype=float)
 
 res = cv2.resize(t,None,fx=0.1,fy=0.1,interpolation=cv2.INTER_AREA)
 res2 = cv2.resize(res,None,fx=10,fy=10,interpolation=cv2.INTER_CUBIC)
 a = np.where(res2 > 0.9, 1, 0)
 a = np.array(a,dtype=float)
-mask_np1 = np.repeat(a[..., np.newaxis], 3, axis=2)
-mask_np1 = mask_np1.transpose(2,0,1)
+mask_tmp = np.repeat(a[..., np.newaxis], 3, axis=2)
+mask_tmp = mask_tmp.transpose(2,0,1)
+
+mask_np1 = crop_perso(mask_tmp, dim_div_by)
 
 """## Création du réseau"""
 
@@ -112,7 +124,7 @@ param_noise = False
 show_every = 50
 figsize = 5
 reg_noise_std = 0.03
-depth = 5
+depth = 6
 
 
 net = build_hourglass(input_depth, output_depth=img_np1.shape[0], 
@@ -120,7 +132,7 @@ net = build_hourglass(input_depth, output_depth=img_np1.shape[0],
                num_channels_up =   [128]*depth,
                num_channels_skip =    [4]*depth,  
                filter_size_up = 5, filter_size_down = 5, 
-               up_samp_mode='bilinear', filter_skip_size=1,num_scales=depth).type(dtype)
+               up_samp_mode='nearest', filter_skip_size=1,num_scales=depth).type(dtype)
 
 net_input = get_noise(input_depth, INPUT, img_np1.shape[1:]).type(dtype)
 
