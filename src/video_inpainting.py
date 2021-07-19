@@ -131,7 +131,7 @@ net = build_hourglass(input_depth, output_depth=img_np1.shape[0],
                num_channels_down = [128]*depth,
                num_channels_up =   [128]*depth,
                num_channels_skip =    [4]*depth,  
-               filter_size_up = 5, filter_size_down = 5, 
+               filter_size_up = 3, filter_size_down = 3, 
                up_samp_mode='nearest', filter_skip_size=1,num_scales=depth).type(dtype)
 
 net_input = get_noise(input_depth, INPUT, img_np1.shape[1:]).type(dtype)
