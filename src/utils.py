@@ -2,6 +2,7 @@ from PIL import Image
 import numpy as np
 import torch
 import torchvision
+import matplotlib.pyplot as plt
 
 def crop_perso(img,d=32):
    """ Make image dim divisible by d """
