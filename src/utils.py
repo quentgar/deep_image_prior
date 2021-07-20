@@ -126,11 +126,11 @@ def optimize(parameters, closure, LR, num_iter):
     closure()
     optimizer.step()
 
-def optimize_joint(parameters1, parameters2, closure, LR_inp, LR_rec, num_iter, ind_iter=1):
+def optimize_joint(parameters1, parameters2, closure, LR_inp, LR_rec, num_iter, ind_iter=1, L2 =0.):
   """ Parallel optimization of inpainting and registration """
   print('Starting optimization with ADAM')
   optimizer_inpainting = torch.optim.Adam(parameters1, lr=LR_inp)
-  optimizer_recalage = torch.optim.Adam(parameters2, lr=LR_rec)
+  optimizer_recalage = torch.optim.Adam(parameters2, lr=LR_rec, weight_decay=L2)
 
   iter = num_iter // ind_iter
 
