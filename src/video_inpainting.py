@@ -10,9 +10,6 @@ Original file is located at
 #!git clone https://github.com/quentgar/dip-inpainting-registration.git
 #!mv dip-inpainting-registration/* ./
 
-#!git clone https://github.com/DmitryUlyanov/deep-image-prior
-#!mv deep-image-prior/* ./
-
 #pip install voxelmorph
 
 # Commented out IPython magic to ensure Python compatibility.
@@ -24,12 +21,11 @@ import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 import numpy as np
-from models.skip import skip
+from src.utils import *
 from src.hourglass_network import *
 import torch
 import torch.optim
 
-from utils.inpainting_utils import *
 #from skimage.measure import compare_psnr
 
 from voxelmorph.torch.layers import SpatialTransformer
@@ -45,59 +41,20 @@ PLOT = True
 imsize = -1
 dim_div_by = 64
 
-img_path = 'mydata/video/subsea01/frames/01_0000'
-mask_path = 'mydata/video/subsea01/mask/01_0000'
+img_path = 'mydata/video/city/0'
+mask_path = 'mydata/video/city/mask_borne/0'
 
-ind_debut = 150
-ind_fin = 169
-
-
-def optimize_perso(optimizer_type, parameters1, parameters2, closure, LR1, LR2, num_iter, ind_iter):
-    print('Starting optimization with ADAM')
-    optimizer_inpainting = torch.optim.Adam(parameters1, lr=LR1)
-    optimizer_recalage = torch.optim.Adam(parameters2, lr=LR2)
-
-    iter = num_iter // ind_iter
-    
-    for j in range(iter):
-        for i in range(ind_iter):
-          # Optimiser paramètres inpainting
-          optimizer_inpainting.zero_grad()
-          # Optimiser paramètres recalage
-          optimizer_recalage.zero_grad()
-            
-          closure()
-        
-          optimizer_inpainting.step()
-          optimizer_recalage.step()
-
-"""# Inpainting sur la première image"""
-
-def format_image(img_path, mask_path, imsize, dim_div_by):
-  img_pil, img_np = get_image(img_path, imsize)
-  img_mask_pil, img_mask_np = get_image(mask_path, imsize)
-  img_pil = crop_image(img_pil, dim_div_by)
-  img_mask_pil = crop_image(img_mask_pil, dim_div_by)
-  img_np = pil_to_np(img_pil)
-  img_mask_np = 1 - pil_to_np(img_mask_pil)
-
-  return img_np, img_mask_np
-
-def crop_perso(img,d=32):
-   new_size = (img.shape[1] - img.shape[1] % d, 
-                img.shape[2] - img.shape[2] % d)
-
-   img_cropped = img[:,
-                     int((img.shape[1] - new_size[0])/2):int((img.shape[1] + new_size[0])/2),
-                     int((img.shape[2] - new_size[1])/2):int((img.shape[2] + new_size[1])/2)]
-                     
-   return img_cropped
+ind_debut = 0
+ind_fin = 9
 
 img_path1 = img_path + str(ind_debut) + '.png'
 mask_path1 = mask_path + str(ind_debut) + '.png'
-img_np1, mask_np1 = format_image(img_path1, mask_path1, imsize, dim_div_by)
+
+img_np1 = format_image(img_path1, dim_div_by)
+mask_np1 = format_image(mask_path1, dim_div_by)
 size = img_np1.shape[1:]
 
+"""
 r = np.where((img_np1[0,:,:] > 0.5) & (img_np1[1,:,:] > 0.5) & (img_np1[2,:,:] > 0.5), 0, 1)
 t = np.array(r,dtype=float)
 
@@ -108,19 +65,14 @@ a = np.array(a,dtype=float)
 mask_tmp = np.repeat(a[..., np.newaxis], 3, axis=2)
 mask_tmp = mask_tmp.transpose(2,0,1)
 
-mask_np1 = crop_perso(mask_tmp, dim_div_by)
+mask_np1 = crop_perso(mask_tmp, dim_div_by)"""
 
 """## Création du réseau"""
-
-pad = 'reflection' # 'zero'
-OPT_OVER = 'net'
-OPTIMIZER = 'adam'
 
 INPUT = 'noise'
 input_depth = 32
 LR = 0.01 
-num_iter = 3000
-param_noise = False
+num_iter = 2500
 show_every = 50
 figsize = 5
 reg_noise_std = 0.03
@@ -151,15 +103,8 @@ def closure_inp():
     
     global i, list_iter, list_psnr, list_loss
     
-    if param_noise:
-        for n in [x for x in net.parameters() if len(x.size()) == 4]:
-            n = n + n.detach().clone().normal_() * n.std() / 50
-    
-    net_input = net_input_saved
-    if reg_noise_std > 0:
-        net_input = net_input_saved + (noise.normal_() * reg_noise_std)
-        
-        
+    net_input = net_input_saved + (noise.normal_() * reg_noise_std)
+       
     out = net(net_input)
    
     total_loss = mse(out * mask_var1, img_var1 * mask_var1)
@@ -186,7 +131,7 @@ noise = net_input.detach().clone()
 p = get_params(OPT_OVER, net, net_input)
 optimize(OPTIMIZER, p, closure_inp, LR, num_iter)
 
-PATH = "/home/francois/dip-registration/model.pt"
+#PATH = "/home/francois/dip-registration/model.pt"
 #net.load_state_dict(torch.load(PATH),strict=False)
 
 res1 = torch_to_np(net(net_input))
@@ -195,7 +140,7 @@ plt.imshow(res1.transpose(1,2,0))
 plt.axis('off')
 plt.savefig('res'+str(ind_debut)+'.png', dpi=300, bbox_inches='tight')
 
-torch.save(net,PATH)
+#torch.save(net,PATH)
 
 img_prec_var = net(net_input).detach().clone()
 num_iter = 1500
