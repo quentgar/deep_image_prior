@@ -83,7 +83,7 @@ net = build_hourglass(input_depth, output_depth=img_np1.shape[0],
                num_channels_down = [128]*depth,
                num_channels_up =   [128]*depth,
                num_channels_skip =    [4]*depth,  
-               filter_size_up = 3, filter_size_down = 3, 
+               filter_size_up = 5, filter_size_down = 5, 
                up_samp_mode='nearest', filter_skip_size=1,num_scales=depth).type(dtype)
 
 net_input = get_noise(input_depth, INPUT, img_np1.shape[1:]).type(dtype)
@@ -130,6 +130,10 @@ noise = net_input.detach().clone()
 
 p = get_params(net)
 optimize(p, closure_inp, LR, num_iter)
+
+plt.figure()
+plt.plot(list_iter,list_loss)
+plt.show()
 
 #PATH = "/home/francois/dip-registration/model.pt"
 #net.load_state_dict(torch.load(PATH),strict=False)
