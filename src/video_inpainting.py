@@ -70,13 +70,13 @@ mask_np1 = crop_perso(mask_tmp, dim_div_by)"""
 """## Création du réseau"""
 
 INPUT = 'noise'
-input_depth = 32
+input_depth = 1
 LR = 0.01 
-num_iter = 2500
+num_iter = 3000
 show_every = 50
 figsize = 5
 reg_noise_std = 0.03
-depth = 6
+depth = 5
 
 
 net = build_hourglass(input_depth, output_depth=img_np1.shape[0], 
@@ -147,8 +147,6 @@ num_iter = 2500
 
 LR_inp = 0.001
 LR_rec = 0.1
-
-depth = 5
 
 for j in range(ind_debut+1, ind_fin+1):
 
