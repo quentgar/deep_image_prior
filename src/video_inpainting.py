@@ -41,14 +41,14 @@ PLOT = True
 imsize = -1
 dim_div_by = 64
 
-img_path = 'mydata/video/city/0'
-mask_path = 'mydata/video/city/mask_borne/0'
+img_path = 'mydata/city/0'
+mask_path = 'mydata/city/mask_borne/mask_0'
 
 ind_debut = 0
 ind_fin = 9
 
-img_path1 = img_path + str(ind_debut) + '.png'
-mask_path1 = mask_path + str(ind_debut) + '.png'
+img_path1 = img_path + str(ind_debut) + '.jpg'
+mask_path1 = mask_path + str(ind_debut) + '.jpg'
 
 img_np1 = format_image(img_path1, dim_div_by)
 mask_np1 = format_image(mask_path1, dim_div_by)
@@ -128,8 +128,8 @@ def closure_inp():
 net_input_saved = net_input.detach().clone()
 noise = net_input.detach().clone()
 
-p = get_params(OPT_OVER, net, net_input)
-optimize(OPTIMIZER, p, closure_inp, LR, num_iter)
+p = get_params(net)
+optimize(p, closure_inp, LR, num_iter)
 
 #PATH = "/home/francois/dip-registration/model.pt"
 #net.load_state_dict(torch.load(PATH),strict=False)
@@ -138,7 +138,7 @@ res1 = torch_to_np(net(net_input))
 plt.figure()
 plt.imshow(res1.transpose(1,2,0))
 plt.axis('off')
-plt.savefig('res'+str(ind_debut)+'.png', dpi=300, bbox_inches='tight')
+plt.savefig('res'+str(ind_debut)+'.jpg', dpi=300, bbox_inches='tight')
 
 #torch.save(net,PATH)
 
@@ -151,10 +151,11 @@ LR_rec = 0.1
 for j in range(ind_debut+1, ind_fin+1):
 
   # Masque et image 2
-  img2_path = img_path + str(j) + '.png'
-  mask2_path = mask_path + str(j) + '.png'
+  img2_path = img_path + str(j) + '.jpg'
+  mask2_path = mask_path + str(j) + '.jpg'
 
-  img_np2, mask_np2 = format_image(img2_path, mask2_path, imsize, dim_div_by)
+  img_np2 = format_image(img2_path, dim_div_by)
+  mask_np2 = format_image(mask2_path, dim_div_by)
 
   # Création des réseaux 
   net_recalage = build_hourglass(input_depth, output_depth=2, 
@@ -198,16 +199,7 @@ for j in range(ind_debut+1, ind_fin+1):
       
       global i, list_iter, list_loss, inp_prec, flow_prec, best_loss, best_iter, best_out, best_flow
       
-      if param_noise:
-          for n in [x for x in net_inpainting.parameters() if len(x.size()) == 4]:
-              n = n + n.detach().clone().normal_() * n.std() / 50
-          for n in [x for x in net_recalage.parameters() if len(x.size()) == 4]:
-              n = n + n.detach().clone().normal_() * n.std() / 50
-      
-      net_input = net_input_saved
-
-      if reg_noise_std > 0:
-          net_input = net_input_saved + (noise.normal_() * reg_noise_std)
+      net_input = net_input_saved + (noise.normal_() * reg_noise_std)
 
       inp_prec = net_inpainting(net_input)
       flow_prec = net_recalage(net_input)
@@ -242,12 +234,10 @@ for j in range(ind_debut+1, ind_fin+1):
   net_input_saved = net_input.detach().clone()
   noise = net_input.detach().clone()
 
-  p1 = get_params(OPT_OVER, net_inpainting, net_input)
-  p2 = get_params(OPT_OVER, net_recalage, net_input)
+  p1 = get_params(net_inpainting)
+  p2 = get_params(net_recalage)
 
-  ind_iter = 1
-
-  optimize_perso(OPTIMIZER, p1, p2, closure, LR_inp, LR_rec, num_iter, ind_iter)
+  optimize_joint(p1, p2, closure, LR_inp, LR_rec, num_iter)
 
   img_prec_var = net_inpainting(net_input).detach().clone()
   img_np = torch_to_np(img_prec_var)
@@ -255,4 +245,4 @@ for j in range(ind_debut+1, ind_fin+1):
   plt.figure()
   plt.imshow(img_np.transpose(1,2,0))
   plt.axis('off')
-  plt.savefig('res'+str(j)+'.png', dpi=300, bbox_inches='tight')
+  plt.savefig('res'+str(j)+'.jpg', dpi=300, bbox_inches='tight')
