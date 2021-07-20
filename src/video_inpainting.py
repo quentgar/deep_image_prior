@@ -41,14 +41,14 @@ PLOT = True
 imsize = -1
 dim_div_by = 64
 
-img_path = 'mydata/city/0'
-mask_path = 'mydata/city/mask_borne/mask_0'
+img_path = 'mydata/city/'
+mask_path = 'mydata/city/mask_phare/mask_'
 
 ind_debut = 0
-ind_fin = 9
+ind_fin = 19
 
-img_path1 = img_path + str(ind_debut) + '.jpg'
-mask_path1 = mask_path + str(ind_debut) + '.jpg'
+img_path1 = img_path + "0" + str(ind_debut) + '.jpg'
+mask_path1 = mask_path + "0" + str(ind_debut) + '.jpg'
 
 img_np1 = format_image(img_path1, dim_div_by)
 mask_np1 = format_image(mask_path1, dim_div_by)
@@ -78,7 +78,7 @@ figsize = 5
 reg_noise_std = 0.03
 depth = 5
 
-
+"""
 net = build_hourglass(input_depth, output_depth=img_np1.shape[0], 
                num_channels_down = [128]*depth,
                num_channels_up =   [128]*depth,
@@ -87,7 +87,7 @@ net = build_hourglass(input_depth, output_depth=img_np1.shape[0],
                up_samp_mode='nearest', filter_skip_size=1,num_scales=depth).type(dtype)
 
 net_input = get_noise(input_depth, INPUT, img_np1.shape[1:]).type(dtype)
-
+"""
 # Loss
 mse = torch.nn.MSELoss().type(dtype)
 
@@ -124,7 +124,7 @@ def closure_inp():
     i += 1
 
     return total_loss
-
+"""
 net_input_saved = net_input.detach().clone()
 noise = net_input.detach().clone()
 
@@ -145,8 +145,10 @@ plt.axis('off')
 plt.savefig('res'+str(ind_debut)+'.jpg', dpi=300, bbox_inches='tight')
 
 #torch.save(net,PATH)
+"""
 
-img_prec_var = net(net_input).detach().clone()
+#img_prec_var = net(net_input).detach().clone()
+ing_prec_var = img_var1.detach.clone()
 num_iter = 2500
 
 LR_inp = 0.001
@@ -155,8 +157,13 @@ LR_rec = 0.1
 for j in range(ind_debut+1, ind_fin+1):
 
   # Masque et image 2
-  img2_path = img_path + str(j) + '.jpg'
-  mask2_path = mask_path + str(j) + '.jpg'
+  if j < 10:
+      c = "0"
+  else:
+      c = ""
+
+  img2_path = img_path + c + str(j) + '.jpg'
+  mask2_path = mask_path + c + str(j) + '.jpg'
 
   img_np2 = format_image(img2_path, dim_div_by)
   mask_np2 = format_image(mask2_path, dim_div_by)
