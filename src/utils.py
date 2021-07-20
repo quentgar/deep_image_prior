@@ -14,7 +14,7 @@ def crop_perso(img,d=32):
 
 def format_image(img_path, dim_div_by):
   """ Load image as numpy array and transpose to C x W x H [0..1] """
-  img_pil = Image.open(img_path1)
+  img_pil = Image.open(img_path)
   ar = np.array(img_pil)
 
   if len(ar.shape) == 3:
