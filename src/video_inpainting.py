@@ -143,10 +143,12 @@ plt.savefig('res'+str(ind_debut)+'.jpg', dpi=300, bbox_inches='tight')
 #torch.save(net,PATH)
 
 img_prec_var = net(net_input).detach().clone()
-num_iter = 1500
+num_iter = 2500
 
 LR_inp = 0.001
 LR_rec = 0.1
+
+depth = 5
 
 for j in range(ind_debut+1, ind_fin+1):
 
