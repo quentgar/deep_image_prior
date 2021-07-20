@@ -26,22 +26,33 @@ def crop_perso(img,d=32):
 
    return img_cropped
 
-def optimize_perso(optimizer_type, parameters1, parameters2, closure, LR_inp, LR_rec, num_iter, ind_iter):
-    print('Starting optimization with ADAM')
-    optimizer_inpainting = torch.optim.Adam(parameters1, lr=LR_inp)
-    optimizer_recalage = torch.optim.Adam(parameters2, lr=LR_rec)
+def optimize(parameters, closure, LR, num_iter):
+  """ Optimize net with Adam """
+  print('Starting optimization with ADAM')
+  optimizer = torch.optim.Adam(parameters, lr=LR)
+  
+  for j in range(num_iter):
+    optimizer.zero_grad()
+    closure()
+    optimizer.step()
 
-    iter = num_iter // ind_iter
-    
-    for j in range(iter):
-        for i in range(ind_iter):
-          # Optimiser paramètres inpainting
-          optimizer_inpainting.zero_grad()
-          closure()
-          optimizer_inpainting.step()
+def optimize_joint(parameters1, parameters2, closure, LR_inp, LR_rec, num_iter, ind_iter):
+  """ Parallel optimization of inpainting and registration """
+  print('Starting optimization with ADAM')
+  optimizer_inpainting = torch.optim.Adam(parameters1, lr=LR_inp)
+  optimizer_recalage = torch.optim.Adam(parameters2, lr=LR_rec)
 
-        for i in range(ind_iter):
-          # Optimiser paramètres recalage
-          optimizer_recalage.zero_grad()
-          closure()
-          optimizer_recalage.step()
+  iter = num_iter // ind_iter
+
+  for j in range(iter):
+      for i in range(ind_iter):
+        # Optimiser paramètres inpainting
+        optimizer_inpainting.zero_grad()
+        closure()
+        optimizer_inpainting.step()
+
+      for i in range(ind_iter):
+        # Optimiser paramètres recalage
+        optimizer_recalage.zero_grad()
+        closure()
+        optimizer_recalage.step()
