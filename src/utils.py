@@ -45,6 +45,15 @@ def get_params(net):
    """ Return net parameters """
    return [x for x in net.parameters()]
 
+def fill_noise(x, noise_type):
+    """Fills tensor `x` with noise of type `noise_type`."""
+    if noise_type == 'u':
+        x.uniform_()
+    elif noise_type == 'n':
+        x.normal_() 
+    else:
+        assert False
+
 def get_noise(input_depth, method, spatial_size, noise_type='u', var=1./10):
     """Returns a pytorch.Tensor of size (1 x `input_depth` x `spatial_size[0]` x `spatial_size[1]`) 
     initialized in a specific way.
