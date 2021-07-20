@@ -38,6 +38,10 @@ def torch_to_np(img_var):
     '''
     return img_var.detach().cpu().numpy()[0]
 
+def get_params(net):
+   """ Return net parameters """
+   return [x for x in net.parameters()]
+
 def optimize(parameters, closure, LR, num_iter):
   """ Optimize net with Adam """
   print('Starting optimization with ADAM')
