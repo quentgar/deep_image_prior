@@ -48,7 +48,7 @@ ind_debut = 0
 ind_fin = 19
 
 img_path1 = img_path + "0" + str(ind_debut) + '.jpg'
-mask_path1 = mask_path + "0" + str(ind_debut) + '.jpg'
+mask_path1 = mask_path + "0" + str(ind_debut+1) + '.jpg'
 
 img_np1 = format_image(img_path1, dim_div_by)
 mask_np1 = format_image(mask_path1, dim_div_by)
@@ -148,7 +148,7 @@ plt.savefig('res'+str(ind_debut)+'.jpg', dpi=300, bbox_inches='tight')
 """
 
 #img_prec_var = net(net_input).detach().clone()
-ing_prec_var = img_var1.detach.clone()
+img_prec_var = img_var1
 num_iter = 2500
 
 LR_inp = 0.001
