@@ -52,10 +52,10 @@ ind_debut = 150
 ind_fin = 169
 
 
-def optimize_perso(optimizer_type, parameters1, parameters2, closure, LR, num_iter, ind_iter):
+def optimize_perso(optimizer_type, parameters1, parameters2, closure, LR1, LR2, num_iter, ind_iter):
     print('Starting optimization with ADAM')
-    optimizer_inpainting = torch.optim.Adam(parameters1, lr=LR)
-    optimizer_recalage = torch.optim.Adam(parameters2, lr=LR)
+    optimizer_inpainting = torch.optim.Adam(parameters1, lr=LR1)
+    optimizer_recalage = torch.optim.Adam(parameters2, lr=LR2)
 
     iter = num_iter // ind_iter
     
@@ -186,15 +186,22 @@ noise = net_input.detach().clone()
 p = get_params(OPT_OVER, net, net_input)
 optimize(OPTIMIZER, p, closure_inp, LR, num_iter)
 
+PATH = "/home/francois/dip-registration/model.pt"
+#net.load_state_dict(torch.load(PATH),strict=False)
+
 res1 = torch_to_np(net(net_input))
 plt.figure()
 plt.imshow(res1.transpose(1,2,0))
 plt.axis('off')
 plt.savefig('res'+str(ind_debut)+'.png', dpi=300, bbox_inches='tight')
 
+torch.save(net,PATH)
+
 img_prec_var = net(net_input).detach().clone()
-num_iter = 1000
-LR = 0.001
+num_iter = 1500
+
+LR_inp = 0.001
+LR_rec = 0.1
 
 for j in range(ind_debut+1, ind_fin+1):
 
@@ -240,7 +247,7 @@ for j in range(ind_debut+1, ind_fin+1):
   best_flow = None
 
   l1 = 1
-  l2 = 1
+  l2 = 3
 
   def closure():
       
@@ -295,7 +302,7 @@ for j in range(ind_debut+1, ind_fin+1):
 
   ind_iter = 1
 
-  optimize_perso(OPTIMIZER, p1, p2, closure, LR, num_iter, ind_iter)
+  optimize_perso(OPTIMIZER, p1, p2, closure, LR_inp, LR_rec, num_iter, ind_iter)
 
   img_prec_var = net_inpainting(net_input).detach().clone()
   img_np = torch_to_np(img_prec_var)
