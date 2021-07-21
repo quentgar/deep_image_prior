@@ -32,6 +32,7 @@ from voxelmorph.torch.layers import SpatialTransformer
 import seaborn as sns
 
 import cv2
+from PIL import Image
 
 torch.backends.cudnn.enabled = True
 torch.backends.cudnn.benchmark =True
@@ -139,10 +140,9 @@ plt.show()
 #net.load_state_dict(torch.load(PATH),strict=False)
 
 res1 = torch_to_np(net(net_input))
-plt.figure()
-plt.imshow(res1.transpose(1,2,0))
-plt.axis('off')
-plt.savefig('res'+str(ind_debut)+'.jpg', dpi=300, bbox_inches='tight')
+t = res1.transpose(1,2,0)*255
+im = Image.fromarray(t.astype(np.uint8))
+im.save('res0.jpg')
 
 #torch.save(net,PATH)
 """
@@ -253,7 +253,6 @@ for j in range(ind_debut+1, ind_fin+1):
   img_prec_var = net_inpainting(net_input).detach().clone()
   img_np = torch_to_np(img_prec_var)
 
-  plt.figure()
-  plt.imshow(img_np.transpose(1,2,0))
-  plt.axis('off')
-  plt.savefig('res'+str(j)+'.jpg', dpi=300, bbox_inches='tight')
+  t = img_np.transpose(1,2,0)*255
+  im = Image.fromarray(t.astype(np.uint8))
+  im.save('res'+j+'.jpg')
