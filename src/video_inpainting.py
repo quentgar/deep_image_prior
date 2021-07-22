@@ -40,15 +40,15 @@ dtype = torch.cuda.FloatTensor
 
 PLOT = True
 imsize = -1
-dim_div_by = 64
+dim_div_by = 32
 
 img_path = 'mydata/city/'
 mask_path = 'mydata/city/mask_phare/mask_'
 
-ind_debut = 0
+ind_debut = 1
 ind_fin = 19
 
-img_path1 = img_path + "0" + str(ind_debut) + '.jpg'
+img_path1 = "mydata/city/00.jpg"
 mask_path1 = mask_path + "0" + str(ind_debut+1) + '.jpg'
 
 img_np1 = format_image(img_path1, dim_div_by)
@@ -71,7 +71,7 @@ mask_np1 = crop_perso(mask_tmp, dim_div_by)"""
 """## Création du réseau"""
 
 INPUT = 'noise'
-input_depth = 1
+input_depth = 32
 LR = 0.01 
 num_iter = 3000
 show_every = 50
@@ -255,4 +255,4 @@ for j in range(ind_debut+1, ind_fin+1):
 
   t = img_np.transpose(1,2,0)*255
   im = Image.fromarray(t.astype(np.uint8))
-  im.save('res'+j+'.jpg')
+  im.save('res/test_phare2/res'+str(j)+'.jpg')
