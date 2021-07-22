@@ -42,14 +42,14 @@ PLOT = True
 imsize = -1
 dim_div_by = 32
 
-img_path = 'mydata/city/'
-mask_path = 'mydata/city/mask_phare/mask_'
+img_path = 'mydata/video/subsea01/frames/01_0000'
+mask_path = 'mydata/video/subsea01/mask/01_0000'
 
-ind_debut = 1
-ind_fin = 19
+ind_debut = 150
+ind_fin = 169
 
-img_path1 = "mydata/city/00.jpg"
-mask_path1 = mask_path + "0" + str(ind_debut+1) + '.jpg'
+img_path1 = "res/test_sea/res150.png"
+mask_path1 = mask_path + str(ind_debut) + '.png'
 
 img_np1 = format_image(img_path1, dim_div_by)
 mask_np1 = format_image(mask_path1, dim_div_by)
@@ -157,13 +157,13 @@ LR_rec = 0.1
 for j in range(ind_debut+1, ind_fin+1):
 
   # Masque et image 2
-  if j < 10:
+  """if j < 10:
       c = "0"
   else:
-      c = ""
+      c = """
 
-  img2_path = img_path + c + str(j) + '.jpg'
-  mask2_path = mask_path + c + str(j) + '.jpg'
+  img2_path = img_path + str(j) + '.png'
+  mask2_path = mask_path + str(j) + '.png'
 
   img_np2 = format_image(img2_path, dim_div_by)
   mask_np2 = format_image(mask2_path, dim_div_by)
@@ -255,4 +255,4 @@ for j in range(ind_debut+1, ind_fin+1):
 
   t = img_np.transpose(1,2,0)*255
   im = Image.fromarray(t.astype(np.uint8))
-  im.save('res/test_phare2/res'+str(j)+'.jpg')
+  im.save('res/test_sea/res'+str(j)+'.png')
