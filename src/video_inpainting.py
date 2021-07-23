@@ -205,10 +205,11 @@ for j in range(ind_debut+1, ind_fin+1):
 
   l1 = 1
   l2 = 3
-
+  psnr_last = 0
+    
   def closure():
       
-      global i, list_iter, list_loss, inp_prec, flow_prec, best_loss, best_iter, best_out, best_flow
+      global i, list_iter, list_loss, inp_prec, flow_prec, best_loss, best_iter, best_out, best_flow, psnr_last
       
       net_input = net_input_saved + (noise.normal_() * reg_noise_std)
 
@@ -219,6 +220,8 @@ for j in range(ind_debut+1, ind_fin+1):
     
       total_loss = l1*mse(out_trans, inp_prec) + l2*mse(inp_prec * mask_var2, img_var2 * mask_var2)
       total_loss.backward()
+    
+      psrn_gt = compare_psnr(img_np2 * mask_np2, out.detach().cpu().numpy()[0] * mask_np2)
 
       if total_loss.item() < best_loss:
         best_loss = total_loss.item()
@@ -235,6 +238,23 @@ for j in range(ind_debut+1, ind_fin+1):
           #plt.imshow(out_np.transpose(1,2,0))
           #plt.show()
           #plot_image_grid([np.clip(torch_to_np(out_trans), 0, 1), np.clip(torch_to_np(inp_prec), 0, 1)], factor=5, nrow=2)
+            
+            
+      # Backtracking
+      if i % show_every:
+            if psrn_gt - psrn_last < -3: 
+                print('Falling back to previous checkpoint.')
+
+                for new_param, net_param in zip(last_net_inp, net_inp.parameters()):
+                    net_param.data.copy_(new_param.cuda())
+
+            i += 1
+
+            return total_loss*0
+      else:
+        last_net_inp = [x.detach().cpu() for x in net_inp.parameters()]
+        psrn_last = psrn_gt
+        
           
       i += 1
 
