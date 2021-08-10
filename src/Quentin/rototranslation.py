@@ -110,8 +110,7 @@ def z2_se2n(
     kernel_stack = rotate_lifting_kernels(
         kernel, orientations_nb, periodicity=periodicity, diskMask=diskMask)
     
-    #print("Z2-SE2N ROTATED KERNEL SET SHAPE:",
-          kernel_stack.shape)  # Debug
+    #print("Z2-SE2N ROTATED KERNEL SET SHAPE:", kernel_stack.shape)  # Debug
 
     # Format the kernel stack as a 2D kernel stack (merging the rotation and
     # channelsOUT axis)
