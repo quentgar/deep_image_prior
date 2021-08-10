@@ -22,7 +22,8 @@ def rotate_lifting_kernels(kernel, orientations_nb, periodicity=2 * np.pi, diskM
 
     # Unpack the shape of the input kernel
     channelsOUT, channelsIN, kernelSizeH, kernelSizeW = map(int, kernel.shape)
-    print("Z2-SE2N BASE KERNEL SHAPE:", kernel.shape)  # Debug
+    
+    #print("Z2-SE2N BASE KERNEL SHAPE:", kernel.shape)  # Debug
 
     # Flatten the baseline kernel
     # Resulting shape: [channelsIN*channelsOUT, kernelSizeH*kernelSizeW]
@@ -32,7 +33,7 @@ def rotate_lifting_kernels(kernel, orientations_nb, periodicity=2 * np.pi, diskM
     # Transpose: [kernelSizeH*kernelSizeW, channelsIN*channelsOUT]
     kernel_flat = torch.transpose(kernel_flat,0,1)
 
-    print("Flatten kernel shape : ",kernel_flat.shape)
+    #print("Flatten kernel shape : ",kernel_flat.shape)
 
     # Generate a set of rotated kernels via rotation matrix multiplication
     # For efficiency purpose, the rotation matrix is implemented as a sparse matrix object
@@ -63,14 +64,14 @@ def rotate_lifting_kernels(kernel, orientations_nb, periodicity=2 * np.pi, diskM
     set_of_rotated_kernels = torch.sparse.mm(
         rotOp_matrix.type(dtype), kernel_flat.type(dtype))
     
-    print("Set of rotated kernels before reshape : ",set_of_rotated_kernels.shape)
+    #print("Set of rotated kernels before reshape : ",set_of_rotated_kernels.shape)
 
     # Reshaping
     # Resulting shape: [nbOrientations, channelsOUT, channelsIN, kernelSizeH, kernelSizeW]
     set_of_rotated_kernels = torch.reshape(
         set_of_rotated_kernels, (orientations_nb, channelsOUT, channelsIN, kernelSizeH, kernelSizeW))
     
-    print("Set of rotated kernels after reshape : ",set_of_rotated_kernels.shape)
+    #print("Set of rotated kernels after reshape : ",set_of_rotated_kernels.shape)
 
     return set_of_rotated_kernels
 
@@ -108,7 +109,8 @@ def z2_se2n(
     # Shape [nbOrientations, channelsOUT, channelsIN, kernelSizeH, kernelSizeW]
     kernel_stack = rotate_lifting_kernels(
         kernel, orientations_nb, periodicity=periodicity, diskMask=diskMask)
-    print("Z2-SE2N ROTATED KERNEL SET SHAPE:",
+    
+    #print("Z2-SE2N ROTATED KERNEL SET SHAPE:",
           kernel_stack.shape)  # Debug
 
     # Format the kernel stack as a 2D kernel stack (merging the rotation and
@@ -118,7 +120,7 @@ def z2_se2n(
     kernels_as_if_2D = torch.reshape(
         kernel_stack, (orientations_nb * channelsOUT, channelsIN, kernelSizeH, kernelSizeW))
     
-    print("2D kernel stack : ",kernels_as_if_2D.shape)
+    #print("2D kernel stack : ",kernels_as_if_2D.shape)
 
     # Perform the 2D convolution
 
@@ -126,7 +128,7 @@ def z2_se2n(
     # Kernels shape [nbOrientations*channelsOUT, channelsIN, kernelSizeH, kernelSizeW]
     layer_output = F.conv2d(input_tensor.type(dtype), kernels_as_if_2D.type(dtype))
 
-    print(layer_output.shape)
+    #print(layer_output.shape)
 
     # Reshape to an SE2 image (split the orientation and channelsOUT axis)
     # Note: the batch size is unknown, hence this dimension needs to be
@@ -136,7 +138,8 @@ def z2_se2n(
     # "Dimensions(None)").
     layer_output = torch.reshape(
         layer_output, (layer_output.shape[0], orientations_nb, channelsOUT, int(layer_output.shape[2]), int(layer_output.shape[3])))
-    print("OUTPUT SE2N ACTIVATIONS SHAPE:", layer_output.shape)  # Debug
+    
+    #print("OUTPUT SE2N ACTIVATIONS SHAPE:", layer_output.shape)  # Debug
 
     # FINAL SHAPE [1, nbOrientations, channelsOUT, h', w']
 
@@ -165,7 +168,8 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
 
   # Unpack the shape of the input kernel
   orientations_nb, channelsOUT, channelsIN, kernelSizeH, kernelSizeW = map(int, kernel.shape)
-  print("SE2N-SE2N BASE KERNEL SHAPE:", kernel.shape)  # Debug
+  
+  #print("SE2N-SE2N BASE KERNEL SHAPE:", kernel.shape)  # Debug
 
   # PART 1 (planar rotation)
   # Flatten the baseline kernel
@@ -176,7 +180,7 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
   # Permute axis : [kernelSizeH*kernelSizeW, orientations_nb*channelsIN*channelsOUT]
   kernel_flat = torch.transpose(kernel_flat,0,1)
 
-  print("Flat kernel : ",kernel_flat.shape)
+  #print("Flat kernel : ",kernel_flat.shape)
 
   # Generate a set of rotated kernels via rotation matrix multiplication
   # For efficiency purpose, the rotation matrix is implemented as a sparse matrix object
@@ -200,7 +204,7 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
   
   kernels_planar_rotated = torch.reshape(kernels_planar_rotated, [orientations_nb, kernelSizeH, kernelSizeW, orientations_nb, channelsIN, channelsOUT])
 
-  print("Matmul reshape : ",kernels_planar_rotated.shape)
+  #print("Matmul reshape : ",kernels_planar_rotated.shape)
 
   # PART 2 (shift in theta direction)
   set_of_rotated_kernels = [None] * orientations_nb
@@ -220,7 +224,7 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
 
   stacked_kernels = torch.stack(set_of_rotated_kernels)
 
-  print("Stacked kernels shape : ",stacked_kernels.shape)
+  #print("Stacked kernels shape : ",stacked_kernels.shape)
 
   return stacked_kernels
 
@@ -252,7 +256,8 @@ def se2n_se2n(input_tensor, kernel, periodicity=2 * np.pi, diskMask=True, paddin
   # With shape: [orientations_nb, kernelSizeH, kernelSizeW, orientations_nb,
   # channelsIN, channelsOUT]
   kernel_stack = rotate_gconv_kernels(kernel, periodicity, diskMask)
-  print("SE2N-SE2N ROTATED KERNEL SET SHAPE:", kernel_stack.shape)  # Debug
+  
+  #print("SE2N-SE2N ROTATED KERNEL SET SHAPE:", kernel_stack.shape)  # Debug
 
   # Group convolutions are done by integrating over [x,y,theta,input-channels] for each translation and rotation of the kernel
   # We compute this integral by doing standard 2D convolutions (translation part) for each rotated version of the kernel (rotation part)
@@ -264,7 +269,7 @@ def se2n_se2n(input_tensor, kernel, periodicity=2 * np.pi, diskMask=True, paddin
   # the 2D convolutions:
   input_tensor_as_if_2D = torch.reshape(input_tensor, [input_tensor.shape[0], orientations_nb * channelsIN, int(input_tensor.shape[3]), int(input_tensor.shape[4])])
 
-  print("Input reshaped shape : ", input_tensor_as_if_2D.shape)
+  #print("Input reshaped shape : ", input_tensor_as_if_2D.shape)
 
   # Reshape the kernels for 2D convolutions (orientation+channelsIN axis are
   # merged, rotation+channelsOUT axis are merged)
@@ -279,7 +284,8 @@ def se2n_se2n(input_tensor, kernel, periodicity=2 * np.pi, diskMask=True, paddin
 
   # Reshape into an SE2 image (split the orientation and channelsOUT axis)
   layer_output = torch.reshape(layer_output, [layer_output.shape[0], orientations_nb, channelsOUT, int(layer_output.shape[2]), int(layer_output.shape[3])])
-  print("OUTPUT SE2N ACTIVATIONS SHAPE:", layer_output.shape)  # Debug
+  
+  #print("OUTPUT SE2N ACTIVATIONS SHAPE:", layer_output.shape)  # Debug
 
   return layer_output, kernel_stack
 
