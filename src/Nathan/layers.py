@@ -26,7 +26,7 @@ def rotate_lifting_kernels(kernel, orientations_nb, periodicity=2 * np.pi, diskM
 
     # Unpack the shape of the input kernel
     channelsOUT, channelsIN, kernelSizeH, kernelSizeW = map(int, kernel.shape)
-    print("Z2-SE2N BASE KERNEL SHAPE:", kernel.shape)  # Debug
+    #print("Z2-SE2N BASE KERNEL SHAPE:", kernel.shape)  # Debug
 
     # Flatten the baseline kernel
     # Resulting shape: [kernelSizeH*kernelSizeW, channelsIN*channelsOUT]
@@ -85,7 +85,7 @@ def z2_se2n(input_tensor, kernel, orientations_nb, periodicity=2 * np.pi, diskMa
   # Preparation for group convolutions
   # Precompute a rotated stack of kernels
   kernel_stack = rotate_lifting_kernels(kernel, orientations_nb, periodicity=periodicity, diskMask=diskMask)
-  print("Z2-SE2N ROTATED KERNEL SET SHAPE:", kernel_stack.shape)  # Debug
+  #print("Z2-SE2N ROTATED KERNEL SET SHAPE:", kernel_stack.shape)  # Debug
 
   # Format the kernel stack as a 2D kernel stack (merging the rotation and
   # channelsOUT axis)
@@ -95,8 +95,8 @@ def z2_se2n(input_tensor, kernel, orientations_nb, periodicity=2 * np.pi, diskMa
 
 
   # Perform the 2D convolution
-  print(input_tensor.shape)
-  print(kernels_as_if_2D.shape)
+  #print(input_tensor.shape)
+  #print(kernels_as_if_2D.shape)
   layer_output = F.conv2d(input_tensor, kernels_as_if_2D.type(torch.FloatTensor), stride=1, padding=padding)
 
   # Reshape to an SE2 image (split the orientation and channelsOUT axis)
@@ -105,9 +105,9 @@ def z2_se2n(input_tensor, kernel, orientations_nb, periodicity=2 * np.pi, diskMa
   # dimensions we keep using tensor.shape since this allows us to keep track
   # of the actual shapes (otherwise the shapes get convert to
   # "Dimensions(None)").
-  print(layer_output.shape)
+  #print(layer_output.shape)
   layer_output = torch.reshape(layer_output, [layer_output.shape[0], orientations_nb, channelsOUT, int(layer_output.shape[2]), int(layer_output.shape[3])])
-  print("OUTPUT SE2N ACTIVATIONS SHAPE:", layer_output.shape)  # Debug
+  #print("OUTPUT SE2N ACTIVATIONS SHAPE:", layer_output.shape)  # Debug
 
   return layer_output, kernel_stack
 
@@ -137,7 +137,7 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
 
   # Unpack the shape of the input kernel
   orientations_nb, channelsOUT, channelsIN, kernelSizeH, kernelSizeW = map(int, kernel.shape)
-  print("SE2N-SE2N BASE KERNEL SHAPE:", kernel.shape)  # Debug
+  #print("SE2N-SE2N BASE KERNEL SHAPE:", kernel.shape)  # Debug
 
   # PART 1 (planar rotation)
   # Flatten the baseline kernel
@@ -219,7 +219,7 @@ def se2n_se2n(input_tensor, kernel, periodicity=2 * np.pi, diskMask=True, paddin
   # Precompute a rotated stack of se2 kernels
   # With shape: [orientations_nb, kernelSizeH, kernelSizeW, orientations_nb, channelsIN, channelsOUT]
   kernel_stack = rotate_gconv_kernels(kernel, periodicity, diskMask)
-  print("SE2N-SE2N ROTATED KERNEL SET SHAPE:", kernel_stack.shape)  # Debug
+  #print("SE2N-SE2N ROTATED KERNEL SET SHAPE:", kernel_stack.shape)  # Debug
 
   # Group convolutions are done by integrating over [x,y,theta,input-channels] for each translation and rotation of the kernel
   # We compute this integral by doing standard 2D convolutions (translation part) for each rotated version of the kernel (rotation part)
@@ -240,9 +240,9 @@ def se2n_se2n(input_tensor, kernel, periodicity=2 * np.pi, diskMask=True, paddin
   layer_output = F.conv2d(input_tensor_as_if_2D.type(torch.FloatTensor), kernels_as_if_2D.type(torch.FloatTensor), stride=1, padding=padding)
 
   # Reshape into an SE2 image (split the orientation and channelsOUT axis)
-  print(layer_output.shape)
+  #print(layer_output.shape)
   layer_output = torch.reshape(layer_output, [layer_output.shape[0],  orientations_nb, channelsOUT, int(layer_output.shape[2]), int(layer_output.shape[3])])
-  print("OUTPUT SE2N ACTIVATIONS SHAPE:", layer_output.shape)  # Debug
+  #print("OUTPUT SE2N ACTIVATIONS SHAPE:", layer_output.shape)  # Debug
 
   return layer_output, kernel_stack
 
