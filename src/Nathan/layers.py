@@ -175,14 +175,14 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
       kernels_temp = kernels_planar_rotated[:,:,:,orientation,:,:]
       # [kernelSizeH,kernelSizeW,channelsIN,channelsOUT,orientations_nb]
       # nous : [channelsOUT,channelsIN,orientations_nb,kernelSizeH,kernelSizeW]
-      kernels_temp = kernels_temp.permute(1, 2, 0, 3, 4)
+      kernels_temp = kernels_temp.permute(1, 2, 3, 4, 0)
       # [kernelSizeH*kernelSizeW*channelsIN*channelsOUT*orientations_nb]
       kernels_temp = torch.reshape(kernels_temp, [kernelSizeH * kernelSizeW * channelsIN * channelsOUT, orientations_nb])
       # Roll along the orientation axis
       roll_matrix = torch.tensor(np.roll(np.identity(orientations_nb), orientation, axis=1), dtype=torch.float32)
       kernels_temp = torch.matmul(kernels_temp.type(torch.DoubleTensor), roll_matrix.type(torch.DoubleTensor))
-      kernels_temp = torch.reshape(kernels_temp, [orientations_nb, channelsOUT, channelsIN, kernelSizeH, kernelSizeW])  # [Nx,Ny,Nin,Nout,Ntheta]
-      #kernels_temp = kernels_temp.permute(4, 0, 1, 2, 3)
+      kernels_temp = torch.reshape(kernels_temp, [channelsOUT, channelsIN, kernelSizeH, kernelSizeW, orientations_nb])  # [Nx,Ny,Nin,Nout,Ntheta]
+      kernels_temp = kernels_temp.permute(4, 0, 1, 2, 3)
       set_of_rotated_kernels[orientation] = kernels_temp
 
   return torch.stack(set_of_rotated_kernels)
