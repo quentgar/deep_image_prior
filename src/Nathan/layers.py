@@ -175,7 +175,7 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
       kernels_temp = kernels_planar_rotated[:,:,:,orientation,:,:]
       # [kernelSizeH,kernelSizeW,channelsIN,channelsOUT,orientations_nb]
       # nous : [channelsOUT,channelsIN,orientations_nb,kernelSizeH,kernelSizeW]
-      kernels_temp = kernels_temp.permute(1, 2, 3, 4, 0)
+      kernels_temp = kernels_temp.permute(1, 2, 0, 3, 4)
       # [kernelSizeH*kernelSizeW*channelsIN*channelsOUT*orientations_nb]
       kernels_temp = torch.reshape(kernels_temp, [kernelSizeH * kernelSizeW * channelsIN * channelsOUT, orientations_nb])
       # Roll along the orientation axis
