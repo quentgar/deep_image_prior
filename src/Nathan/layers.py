@@ -52,7 +52,7 @@ def rotate_lifting_kernels(kernel, orientations_nb, periodicity=2 * np.pi, diskM
     rotOp_matrix = torch.sparse_coo_tensor(new_idx, vals, (orientations_nb * kernelSizeH * kernelSizeW, kernelSizeH * kernelSizeW))
     # Matrix multiplication
     # Resulting shape: [nbOrientations*kernelSizeH*kernelSizeW,channelsIN*channelsOUT]
-    set_of_rotated_kernels = torch.sparse.mm(rotOp_matrix.type(torch.DoubleTensor), kernel_flat.type(torch.DoubleTensor))
+    set_of_rotated_kernels = torch.sparse.mm(rotOp_matrix.type(torch.cuda.FloatTensor), kernel_flat.type(torch.cuda.FloatTensor))
 
     # Reshaping
     # Resulting shape: [nbOrientations, kernelSizeH, kernelSizeW, channelsIN,channelsOUT]
