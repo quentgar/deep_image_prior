@@ -97,7 +97,7 @@ def z2_se2n(input_tensor, kernel, orientations_nb, periodicity=2 * np.pi, diskMa
   # Perform the 2D convolution
   #print(input_tensor.shape)
   #print(kernels_as_if_2D.shape)
-  layer_output = F.conv2d(input_tensor, kernels_as_if_2D.type(torch.FloatTensor), stride=1, padding=padding)
+  layer_output = F.conv2d(input_tensor.type(torch.cuda.FloatTensor), kernels_as_if_2D.type(torch.cuda.FloatTensor), stride=1, padding=padding)
 
   # Reshape to an SE2 image (split the orientation and channelsOUT axis)
   # Note: the batch size is unknown, hence this dimension needs to be
@@ -180,7 +180,7 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
       kernels_temp = torch.reshape(kernels_temp, [kernelSizeH * kernelSizeW * channelsIN * channelsOUT, orientations_nb])
       # Roll along the orientation axis
       roll_matrix = torch.tensor(np.roll(np.identity(orientations_nb), orientation, axis=1), dtype=torch.float32)
-      kernels_temp = torch.matmul(kernels_temp.type(torch.DoubleTensor), roll_matrix.type(torch.DoubleTensor))
+      kernels_temp = torch.matmul(kernels_temp.type(torch.cuda.FloatTensor), roll_matrix.type(torch.cuda.FloatTensor))
       kernels_temp = torch.reshape(kernels_temp, [channelsOUT, channelsIN, kernelSizeH, kernelSizeW, orientations_nb])  # [Nx,Ny,Nin,Nout,Ntheta]
       kernels_temp = kernels_temp.permute(4, 0, 1, 2, 3)
       set_of_rotated_kernels[orientation] = kernels_temp
@@ -237,7 +237,7 @@ def se2n_se2n(input_tensor, kernel, periodicity=2 * np.pi, diskMask=True, paddin
   kernels_as_if_2D = torch.reshape(kernel_stack, [orientations_nb * channelsOUT, orientations_nb * channelsIN, kernelSizeH, kernelSizeW])
 
   # Perform the 2D convolutions
-  layer_output = F.conv2d(input_tensor_as_if_2D.type(torch.FloatTensor), kernels_as_if_2D.type(torch.FloatTensor), stride=1, padding=padding)
+  layer_output = F.conv2d(input_tensor_as_if_2D.type(torch.cuda.FloatTensor), kernels_as_if_2D.type(torch.cuda.FloatTensor), stride=1, padding=padding)
 
   # Reshape into an SE2 image (split the orientation and channelsOUT axis)
   #print(layer_output.shape)
