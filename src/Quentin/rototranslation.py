@@ -75,75 +75,6 @@ def rotate_lifting_kernels(kernel, orientations_nb, periodicity=2 * np.pi, diskM
 
     return set_of_rotated_kernels
 
-def z2_se2n(
-        input_tensor,
-        kernel,
-        orientations_nb,
-
-        # Optional:
-        periodicity=2 * np.pi,
-        diskMask=True,
-        padding='valid'):
-    """ Constructs a group convolutional layer.
-        (lifting layer from Z2 to SE2N with N input number of orientations)
-        INPUT:
-            - input_tensor in Z2, a tensorflow Tensor with expected shape:
-                [BatchSize, ChannelsIN, Height, Width]
-            - kernel, a tensorflow Tensor with expected shape:
-                [ChannelsOUT, ChannelsIN, kernelSize, kernelSize]
-                /!\ [] /!\
-            - orientations_nb, an integer specifying the number of rotations
-        INPUT (optional):
-            - periodicity, rotate in total over 2*np.pi or np.pi
-            - disk_mask, True or False, specifying whether or not to mask the kernels spatially
-        OUTPUT:
-            - output_tensor, the tensor after group convolutions with shape
-                [BatchSize, orientations_nb, ChannelsOut, Height', Width']
-                (Height', Width' are reduced sizes due to the valid convolution)
-            - kernels_formatted, the formated kernels, i.e., the full stack of rotated kernels with shape:
-                [orientations_nb, ChannelsOUT, ChannelsIN, kernelSize, kernelSize]
-    """
-
-    # Preparation for group convolutions
-    # Precompute a rotated stack of kernels
-    # Shape [nbOrientations, channelsOUT, channelsIN, kernelSizeH, kernelSizeW]
-    kernel_stack = rotate_lifting_kernels(
-        kernel, orientations_nb, periodicity=periodicity, diskMask=diskMask)
-    
-    #print("Z2-SE2N ROTATED KERNEL SET SHAPE:", kernel_stack.shape)  # Debug
-
-    # Format the kernel stack as a 2D kernel stack (merging the rotation and
-    # channelsOUT axis)
-
-    channelsOUT, channelsIN, kernelSizeH, kernelSizeW = map(int, kernel.shape)
-    kernels_as_if_2D = torch.reshape(
-        kernel_stack, (orientations_nb * channelsOUT, channelsIN, kernelSizeH, kernelSizeW))
-    
-    #print("2D kernel stack : ",kernels_as_if_2D.shape)
-
-    # Perform the 2D convolution
-
-    # Input shape [1, channelsIN, h, w]
-    # Kernels shape [nbOrientations*channelsOUT, channelsIN, kernelSizeH, kernelSizeW]
-    layer_output = F.conv2d(input_tensor.type(dtype), kernels_as_if_2D.type(dtype))
-
-    #print(layer_output.shape)
-
-    # Reshape to an SE2 image (split the orientation and channelsOUT axis)
-    # Note: the batch size is unknown, hence this dimension needs to be
-    # obtained using the tensorflow function tf.shape, for the other
-    # dimensions we keep using tensor.shape since this allows us to keep track
-    # of the actual shapes (otherwise the shapes get convert to
-    # "Dimensions(None)").
-    layer_output = torch.reshape(
-        layer_output, (layer_output.shape[0], orientations_nb, channelsOUT, int(layer_output.shape[2]), int(layer_output.shape[3])))
-    
-    #print("OUTPUT SE2N ACTIVATIONS SHAPE:", layer_output.shape)  # Debug
-
-    # FINAL SHAPE [1, nbOrientations, channelsOUT, h', w']
-
-    return layer_output, kernel_stack
-
 def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
   """ Rotates the set of SE2 kernels. 
         Rotation of SE2 kernels involves planar rotations and a shift in orientation,
@@ -227,8 +158,93 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
 
   return stacked_kernels
 
-def se2n_se2n(input_tensor, kernel, periodicity=2 * np.pi, diskMask=True, padding='valid'):
-  """ Constructs a group convolutional layer.
+""" Constructs a group convolutional layer.
+        (lifting layer from Z2 to SE2N with N input number of orientations)
+        INPUT:
+            - input_tensor in Z2, a tensorflow Tensor with expected shape:
+                [BatchSize, ChannelsIN, Height, Width]
+            - kernel, a tensorflow Tensor with expected shape:
+                [ChannelsOUT, ChannelsIN, kernelSize, kernelSize]
+                /!\ [] /!\
+            - orientations_nb, an integer specifying the number of rotations
+        INPUT (optional):
+            - periodicity, rotate in total over 2*np.pi or np.pi
+            - disk_mask, True or False, specifying whether or not to mask the kernels spatially
+        OUTPUT:
+            - output_tensor, the tensor after group convolutions with shape
+                [BatchSize, orientations_nb, ChannelsOut, Height', Width']
+                (Height', Width' are reduced sizes due to the valid convolution)
+            - kernels_formatted, the formated kernels, i.e., the full stack of rotated kernels with shape:
+                [orientations_nb, ChannelsOUT, ChannelsIN, kernelSize, kernelSize]
+    """
+class lifting_block(nn.Module):
+
+  def __init__(self, channelsIN, channelsOUT, kSize, orientations_nb,
+               periodicity=2 * np.pi, diskMask=True, padding='same',
+               dtype = torch.cuda.FloatTensor):
+
+    super().__init__()
+
+    std = m.sqrt(2.0 / (channelsIN*kSize*kSize))
+
+    self.kernel = Parameter(torch.randn((channelsOUT,channelsIN,kSize,kSize), requires_grad=True)*std)
+    
+    self.orientations_nb = orientations_nb
+    self.channelsIN = channelsIN
+    self.channelsOUT = channelsOUT
+    self.kSize = kSize
+
+    self.periodicity = periodicity
+    self.diskMask = diskMask
+    self.padding = padding
+
+    self.dtype = dtype
+
+  def forward(self, input):
+
+    # Preparation for group convolutions
+    # Precompute a rotated stack of kernels
+    # Shape [nbOrientations, channelsOUT, channelsIN, kernelSizeH, kernelSizeW]
+    kernel_stack = rotate_lifting_kernels(
+        self.kernel, self.orientations_nb, periodicity=self.periodicity, diskMask=self.diskMask)
+    
+    #print("Z2-SE2N ROTATED KERNEL SET SHAPE:",kernel_stack.shape)  # Debug
+
+    # Format the kernel stack as a 2D kernel stack (merging the rotation and
+    # channelsOUT axis)
+    kernels_as_if_2D = torch.reshape(
+        kernel_stack, (self.orientations_nb * self.channelsOUT, 
+                       self.channelsIN, self.kSize, self.kSize))
+    
+    #print("2D kernel stack : ",kernels_as_if_2D.shape)
+
+    # Perform the 2D convolution
+
+    # Input shape [1, channelsIN, h, w]
+    # Kernels shape [nbOrientations*channelsOUT, channelsIN, kernelSizeH, kernelSizeW]
+    layer_output = F.conv2d(input.type(self.dtype), kernels_as_if_2D.type(self.dtype),padding=self.padding)
+
+    #print(layer_output.shape)
+
+    # Reshape to an SE2 image (split the orientation and channelsOUT axis)
+    # Note: the batch size is unknown, hence this dimension needs to be
+    # obtained using the tensorflow function tf.shape, for the other
+    # dimensions we keep using tensor.shape since this allows us to keep track
+    # of the actual shapes (otherwise the shapes get convert to
+    # "Dimensions(None)").
+    layer_output = torch.reshape(
+        layer_output, (layer_output.shape[0], self.orientations_nb,
+                       self.channelsOUT, int(layer_output.shape[2]), int(layer_output.shape[3])))
+    
+    #print("OUTPUT SE2N ACTIVATIONS SHAPE:", layer_output.shape)  # Debug
+
+    # FINAL SHAPE [1, nbOrientations, channelsOUT, h', w']
+
+    #return layer_output, kernel_stack
+    
+    return layer_output
+
+""" Constructs a group convolutional layer.
         (group convolution layer from SE2N to SE2N with N input number of orientations)
         INPUT:
             - input_tensor in SE2n, a tensor flow tensor with expected shape:
@@ -246,68 +262,116 @@ def se2n_se2n(input_tensor, kernel, periodicity=2 * np.pi, diskMask=True, paddin
             - kernels_formatted, the formated kernels, i.e., the full stack of
                 rotated kernels with shape [nbOrientations, kernelSize, kernelSize, nbOrientations, channelsIn, channelsOut]
   """
+class gconv_block(nn.Module):
 
-  # Kernel dimensions
-  orientations_nb, channelsOUT, channelsIN, kernelSizeH, kernelSizeW = map(int, kernel.shape)
+  def __init__(self, channelsIN, channelsOUT, kSize, orientations_nb,
+               periodicity=2 * np.pi, diskMask=True, padding='same',
+               dtype = torch.cuda.FloatTensor):
 
-  # Preparation for group convolutions
-  # Precompute a rotated stack of se2 kernels
-  # With shape: [orientations_nb, kernelSizeH, kernelSizeW, orientations_nb,
-  # channelsIN, channelsOUT]
-  kernel_stack = rotate_gconv_kernels(kernel, periodicity, diskMask)
-  
-  #print("SE2N-SE2N ROTATED KERNEL SET SHAPE:", kernel_stack.shape)  # Debug
+    super().__init__()
 
-  # Group convolutions are done by integrating over [x,y,theta,input-channels] for each translation and rotation of the kernel
-  # We compute this integral by doing standard 2D convolutions (translation part) for each rotated version of the kernel (rotation part)
-  # In order to efficiently do this we use 2D convolutions where the theta
-  # and input-channel axes are merged (thus treating the SE2 image as a 2D
-  # feature map)
+    std = m.sqrt(2.0 / (channelsIN*kSize*kSize))
 
-  # Prepare the input tensor (merge the orientation and channel axis) for
-  # the 2D convolutions:
-  input_tensor_as_if_2D = torch.reshape(input_tensor, [input_tensor.shape[0], orientations_nb * channelsIN, int(input_tensor.shape[3]), int(input_tensor.shape[4])])
+    self.kernel = Parameter(torch.randn((orientations_nb,channelsOUT,channelsIN,kSize,kSize),requires_grad=True)*std)
 
-  #print("Input reshaped shape : ", input_tensor_as_if_2D.shape)
+    self.orientations_nb = orientations_nb
+    self.channelsIN = channelsIN
+    self.channelsOUT = channelsOUT
+    self.kSize = kSize
 
-  # Reshape the kernels for 2D convolutions (orientation+channelsIN axis are
-  # merged, rotation+channelsOUT axis are merged)
-  kernels_as_if_2D = kernel_stack.permute(1, 2, 3, 4, 0, 5)
-  kernels_as_if_2D = torch.reshape(kernels_as_if_2D, [kernelSizeH, kernelSizeW, orientations_nb * channelsIN, orientations_nb * channelsOUT])
+    self.periodicity = periodicity
+    self.diskMask = diskMask
+    self.padding = padding
 
-  # Permute kernels : [nbOrientations * channelsOUT, nbOrientations * channelsIN, kernelSizeH, kernelSizeW]
-  kernels_as_if_2D = kernels_as_if_2D.permute(3,2,0,1)
+    self.dtype = dtype
 
-  # Perform the 2D convolutions
-  layer_output = F.conv2d(input_tensor_as_if_2D.type(dtype), kernels_as_if_2D.type(dtype))
+  def forward(self, input):
 
-  # Reshape into an SE2 image (split the orientation and channelsOUT axis)
-  layer_output = torch.reshape(layer_output, [layer_output.shape[0], orientations_nb, channelsOUT, int(layer_output.shape[2]), int(layer_output.shape[3])])
-  
-  #print("OUTPUT SE2N ACTIVATIONS SHAPE:", layer_output.shape)  # Debug
+    # Preparation for group convolutions
+    # Precompute a rotated stack of se2 kernels
+    # With shape: [orientations_nb, kernelSizeH, kernelSizeW, orientations_nb,
+    # channelsIN, channelsOUT]
+    kernel_stack = rotate_gconv_kernels(self.kernel, self.periodicity, self.diskMask)
+    
+    #print("SE2N-SE2N ROTATED KERNEL SET SHAPE:", kernel_stack.shape)  # Debug
 
-  return layer_output, kernel_stack
+    # Group convolutions are done by integrating over [x,y,theta,input-channels] for each translation and rotation of the kernel
+    # We compute this integral by doing standard 2D convolutions (translation part) for each rotated version of the kernel (rotation part)
+    # In order to efficiently do this we use 2D convolutions where the theta
+    # and input-channel axes are merged (thus treating the SE2 image as a 2D
+    # feature map)
 
-def spatial_max_pool(input_tensor, nbOrientations, padding='valid'):
-    """ Performs spatial max-pooling on every orientation of the SE2N tensor.
-        INPUT:
-            - input_tensor in SE2n, a tensor flow tensor with expected shape:
-                [BatchSize, nbOrientations, ChannelsIN, Height, Width]
-        OUTPUT:
-            - output_tensor, the tensor after spatial max-pooling
-                [BatchSize, nbOrientations, ChannelsOut, Height/2, Width/2]
-    """
+    # Prepare the input tensor (merge the orientation and channel axis) for
+    # the 2D convolutions:
+    input_tensor_as_if_2D = torch.reshape(input,
+                                          [input.shape[0], self.orientations_nb * self.channelsIN, 
+                                           int(input.shape[3]), int(input.shape[4])])
 
-    # 2D max-pooling is applied to each orientation
-    activations = [None] * nbOrientations
-    for i in range(nbOrientations):
-        max_pool = torch.nn.MaxPool2d(2,
-            stride=2,
-            padding=0)
-        
-        activations[i] = max_pool(input_tensor[:, i, :, :, :])
+    #print("Input reshaped shape : ", input_tensor_as_if_2D.shape)
 
-    # Re-stack all the pooled activations along the orientation dimension
-    tensor_pooled = torch.cat([t.unsqueeze(1) for t in activations], dim=1)
+    # Reshape the kernels for 2D convolutions (orientation+channelsIN axis are
+    # merged, rotation+channelsOUT axis are merged)
+    kernels_as_if_2D = kernel_stack.permute(1, 2, 3, 4, 0, 5)
+    kernels_as_if_2D = torch.reshape(kernels_as_if_2D, [self.kSize, self.kSize, 
+                                                        self.orientations_nb * self.channelsIN, 
+                                                        self.orientations_nb * self.channelsOUT])
 
-    return tensor_pooled
+    # Permute kernels : [nbOrientations * channelsOUT, nbOrientations * channelsIN, kernelSizeH, kernelSizeW]
+    kernels_as_if_2D = kernels_as_if_2D.permute(3,2,0,1)
+
+    # Perform the 2D convolutions
+    layer_output = F.conv2d(input_tensor_as_if_2D.type(self.dtype), kernels_as_if_2D.type(self.dtype),padding=self.padding)
+
+    # Reshape into an SE2 image (split the orientation and channelsOUT axis)
+    layer_output = torch.reshape(layer_output, [layer_output.shape[0], self.orientations_nb, 
+                                                self.channelsOUT, int(layer_output.shape[2]), int(layer_output.shape[3])])
+    
+    #print("OUTPUT SE2N ACTIVATIONS SHAPE:", layer_output.shape)  # Debug
+
+    #return layer_output, kernel_stack
+    return layer_output
+
+class roto_block(nn.Module):
+
+  def __init__(self, channelsIN, channelsOUT, kSize, orientations_nb,
+               periodicity=2 * np.pi, diskMask=True, padding='same',
+               dtype = torch.cuda.FloatTensor):
+    super().__init__()
+
+    self.lifting = lifting_block(channelsIN, channelsOUT, kSize, orientations_nb,
+                                 periodicity=2 * np.pi, diskMask=True, padding=padding,
+                                 dtype = torch.cuda.FloatTensor)
+    
+    self.gconv = gconv_block(channelsOUT, channelsOUT, kSize, orientations_nb,
+                             periodicity=2 * np.pi, diskMask=True, padding=padding,
+                             dtype = torch.cuda.FloatTensor)
+    
+    self.spatial_max_pool = spatial_max_pool(orientations_nb, channelsOUT, padding=0, stride=2)
+
+    self.relu = nn.LeakyReLU(0.2, inplace=True)
+    self.up = nn.Upsample(scale_factor=2, mode='nearest')
+    self.bn = nn.BatchNorm2d(channelsOUT)
+
+  def forward(self, input):
+
+    x = self.up(input)
+
+    x = self.lifting(x)
+    #x = self.relu(x)
+
+    x = self.gconv(x)
+    #x = self.relu(x)
+
+    # SHAPE [BatchSize, nbOrientations, ChannelsIN, Height, Width]
+
+    x, id = torch.max(x,1)
+
+    # SHAPE [BatchSize, ChannelsIN, Height, Width]
+
+    # Fusion des axes de rotations et channelsOUT
+    # x = torch.reshape(x, [x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]])
+
+    x = self.bn(x)
+    x = self.relu(x)
+
+    return x
