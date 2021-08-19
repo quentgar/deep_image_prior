@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from RotoTrans import rotation
 import torch.nn.functional as F
+import torch.nn as nn
 from src.utils import *
 
 dtype = torch.cuda.FloatTensor
