@@ -3,6 +3,7 @@ import torch.optim
 import torch.nn.functional as F
 import numpy as np
 from RotoTrans import rotation
+from torch import Tensor
 
 from src.utils import *
 from src.hourglass_network import *
