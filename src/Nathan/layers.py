@@ -11,6 +11,7 @@ from src.utils import *
 from src.hourglass_network import *
 
 from mpl_toolkits.axes_grid1 import ImageGrid
+dtype = torch.cuda.FloatTensor
 
 
 def rotate_lifting_kernels(kernel, orientations_nb, periodicity=2 * np.pi, diskMask=True):
