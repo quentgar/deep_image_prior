@@ -60,11 +60,15 @@ class build_hourglass_roto(nn.Module):
             if num_channels_skip[i] != 0:
               attributes.append(('d'+str(i+1),decoder_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
             else:
-              attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
+              attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
               #attributes.append(('d'+str(i+1),roto_decoder_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], 5, 8, up_sampling_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
           else:
-            #attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
-            attributes.append(('d'+str(i+1),roto_decoder_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], 9, 8, up_sampling_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
+            if num_channels_skip[i] != 0:
+              #attributes.append(('d'+str(i+1),decoder_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
+              attributes.append(('d'+str(i+1),roto_decoder_skip_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], 5, 8, up_sampling_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
+            else:
+              #attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
+              attributes.append(('d'+str(i+1),roto_decoder_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], 5, 8, up_sampling_mode=up_samp_mode).type(torch.cuda.FloatTensor)))
 
         for key, value in attributes:
           setattr(self, key, value)
