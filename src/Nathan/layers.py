@@ -403,6 +403,38 @@ class roto_decoder_block(nn.Module):
     return x
 
 
+
+class roto_decoder_skip_block(nn.Module):
+  def __init__(self, in_c, out_c, kernel_size, Ntheta, up_sampling_mode):
+    super().__init__()
+
+    self.Ntheta = Ntheta
+    self.bn = nn.BatchNorm2d(out_c)
+    self.lifting = NN_z2_se2n(in_c, out_c, kernel_size, Ntheta, 1, 'same')
+    self.relu = nn.LeakyReLU(0.2, inplace=True)
+    self.conv = NN_se2n_se2n(out_c, out_c, kernel_size, Ntheta, 1, 'same')
+    self.pool = NN_spatial_max_pool(Ntheta, in_c)
+    self.up = nn.Upsample(scale_factor=2, mode=up_sampling_mode)
+
+  def forward(self, inputs, skip):
+
+    x = torch.cat([inputs, skip], axis=1)
+    x = self.up(x)
+    x = self.lifting(x)
+    x = self.relu(x)
+    x = self.conv(x)
+    x = self.relu(x)
+    x = self.pool(x)
+    #x = torch.reshape(x, [x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]])
+    #x = torch.cat([x[:,i,:,:,:] for i in range(self.Ntheta)],1)
+    x = self.bn(x)
+    x = self.relu(x)
+
+    return x
+
+
+
+
 class roto_encoder_block(nn.Module):
   def __init__(self, in_c, out_c, kernel_size, Ntheta):
     super().__init__()
