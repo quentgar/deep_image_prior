@@ -6,6 +6,7 @@ import torch.nn as nn
 from torch.nn.parameter import Parameter
 
 from src.utils import *
+from src.hourglass_network import *
 import math as m
 
 dtype = torch.cuda.FloatTensor
