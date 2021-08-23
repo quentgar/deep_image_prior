@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 from RotoTrans import rotation
 from torch import Tensor
+from torch.nn.parameter import Parameter
 
 from src.utils import *
 from src.hourglass_network import *
