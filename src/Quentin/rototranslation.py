@@ -350,8 +350,6 @@ class roto_block(nn.Module):
                              periodicity=2 * np.pi, diskMask=True, padding=padding,
                              dtype = torch.cuda.FloatTensor)
     
-    self.spatial_max_pool = spatial_max_pool(orientations_nb, channelsOUT, padding=0, stride=2)
-
     self.relu = nn.LeakyReLU(0.2, inplace=True)
     self.up = nn.Upsample(scale_factor=2, mode='nearest')
     self.bn = nn.BatchNorm2d(channelsOUT)
