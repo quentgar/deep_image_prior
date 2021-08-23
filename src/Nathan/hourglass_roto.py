@@ -2,6 +2,7 @@ import torch.nn as nn
 from . import layers
 from torch import Tensor
 from . import utils
+from . import hourglass_network
 
 class build_hourglass_roto(nn.Module):
     
