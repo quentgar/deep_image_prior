@@ -1,5 +1,6 @@
 import torch.nn as nn
 from . import layers
+from torch import Tensor
 
 class build_hourglass_roto(nn.Module):
     
