@@ -126,7 +126,7 @@ class NN_z2_se2n(nn.Module):
   def _conv_forward(self, input_tensor: Tensor, kernel: Tensor, Ntheta: int):
     # Preparation for group convolutions
     # Precompute a rotated stack of kernels
-    kernel_stack = layers.rotate_lifting_kernels(kernel, Ntheta)
+    kernel_stack = rotate_lifting_kernels(kernel, Ntheta)
 
     # Format the kernel stack as a 2D kernel stack (merging the rotation and
     # channelsOUT axis)
@@ -302,7 +302,7 @@ class NN_se2n_se2n(nn.Module):
     # Preparation for group convolutions
     # Precompute a rotated stack of se2 kernels
     # With shape: [orientations_nb, kernelSizeH, kernelSizeW, orientations_nb, channelsIN, channelsOUT]
-    kernel_stack = layers.rotate_gconv_kernels(kernel)
+    kernel_stack = rotate_gconv_kernels(kernel)
 
     # Group convolutions are done by integrating over [x,y,theta,input-channels] for each translation and rotation of the kernel
     # We compute this integral by doing standard 2D convolutions (translation part) for each rotated version of the kernel (rotation part)
