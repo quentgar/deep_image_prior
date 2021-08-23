@@ -354,6 +354,50 @@ class roto_block(nn.Module):
     self.up = nn.Upsample(scale_factor=2, mode='nearest')
     self.bn = nn.BatchNorm2d(channelsOUT)
 
+  def forward(self, input, skip):
+
+    x = torch.cat([input, skip], axis=1)
+    x = self.up(x)
+
+    x = self.lifting(x)
+    #x = self.relu(x)
+
+    x = self.gconv(x)
+    #x = self.relu(x)
+
+    # SHAPE [BatchSize, nbOrientations, ChannelsIN, Height, Width]
+
+    x, id = torch.max(x,1)
+
+    # SHAPE [BatchSize, ChannelsIN, Height, Width]
+
+    # Fusion des axes de rotations et channelsOUT
+    # x = torch.reshape(x, [x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]])
+
+    x = self.bn(x)
+    x = self.relu(x)
+
+    return x
+
+class roto_block_noskip(nn.Module):
+
+  def __init__(self, channelsIN, channelsOUT, kSize, orientations_nb,
+               periodicity=2 * np.pi, diskMask=True, padding='same',
+               dtype = torch.cuda.FloatTensor):
+    super().__init__()
+
+    self.lifting = lifting_block(channelsIN, channelsOUT, kSize, orientations_nb,
+                                 periodicity=2 * np.pi, diskMask=True, padding=padding,
+                                 dtype = torch.cuda.FloatTensor)
+    
+    self.gconv = gconv_block(channelsOUT, channelsOUT, kSize, orientations_nb,
+                             periodicity=2 * np.pi, diskMask=True, padding=padding,
+                             dtype = torch.cuda.FloatTensor)
+    
+    self.relu = nn.LeakyReLU(0.2, inplace=True)
+    self.up = nn.Upsample(scale_factor=2, mode='nearest')
+    self.bn = nn.BatchNorm2d(channelsOUT)
+
   def forward(self, input):
 
     x = self.up(input)
