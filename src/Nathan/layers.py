@@ -111,6 +111,44 @@ def z2_se2n(input_tensor, kernel, orientations_nb, periodicity=2 * np.pi, diskMa
 
   return layer_output, kernel_stack
 
+class NN_z2_se2n(nn.Module):
+  def __init__(self, in_c: int, out_c: int, kernel_size: int, Ntheta: int, stride=1, padding='valid') -> None:
+    super().__init__()
+
+    self.Ntheta = Ntheta
+    self.stride = stride
+    self.padding = padding
+    self.kernel = Parameter(torch.randn((out_c, in_c, kernel_size, kernel_size), requires_grad=True)*(m.sqrt(2/(in_c*kernel_size*kernel_size))))
+
+  def _conv_forward(self, input_tensor: Tensor, kernel: Tensor, Ntheta: int):
+    # Preparation for group convolutions
+    # Precompute a rotated stack of kernels
+    kernel_stack = layers.rotate_lifting_kernels(kernel, Ntheta)
+
+    # Format the kernel stack as a 2D kernel stack (merging the rotation and
+    # channelsOUT axis)
+    #kernels_as_if_2D = kernel_stack.permute(1, 2, 3, 0, 4)
+    orientations_nb = Ntheta
+    channelsOUT, channelsIN, kernelSizeH, kernelSizeW = map(int, kernel.shape)
+    kernels_as_if_2D = torch.reshape(kernel_stack, [orientations_nb * channelsOUT, channelsIN, kernelSizeH, kernelSizeW])
+
+
+    # Perform the 2D convolution
+    layer_output = F.conv2d(input_tensor.type(dtype), kernels_as_if_2D.type(dtype), stride=self.stride, padding=self.padding)
+
+    # Reshape to an SE2 image (split the orientation and channelsOUT axis)
+    # Note: the batch size is unknown, hence this dimension needs to be
+    # obtained using the tensorflow function tf.shape, for the other
+    # dimensions we keep using tensor.shape since this allows us to keep track
+    # of the actual shapes (otherwise the shapes get convert to
+    # "Dimensions(None)").
+    layer_output = torch.reshape(layer_output, [layer_output.shape[0], orientations_nb, channelsOUT, int(layer_output.shape[2]), int(layer_output.shape[3])])
+
+    return layer_output
+  
+  def forward(self, input: Tensor) -> Tensor:
+    return self._conv_forward(input, self.kernel, self.Ntheta)
+
 
 
 def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
@@ -189,7 +227,6 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
 
 
 
-
 def se2n_se2n(input_tensor, kernel, periodicity=2 * np.pi, diskMask=True, padding='valid'):
   """ Constructs a group convolutional layer.
         (group convolution layer from SE2N to SE2N with N input number of orientations)
@@ -247,6 +284,49 @@ def se2n_se2n(input_tensor, kernel, periodicity=2 * np.pi, diskMask=True, paddin
   return layer_output, kernel_stack
 
 
+class NN_se2n_se2n(nn.Module):
+  def __init__(self, in_c: int, out_c: int, kernel_size: int, Ntheta: int, stride=1, padding='valid') -> None:
+    super().__init__()
+
+    self.stride = stride
+    self.padding = padding
+    self.kernel = Parameter(torch.randn((Ntheta, out_c, in_c, kernel_size, kernel_size), requires_grad=True)*(m.sqrt(2/(in_c*kernel_size*kernel_size))))
+
+  def _conv_forward(self, input_tensor: Tensor, kernel: Tensor):
+    # Kernel dimensions
+    orientations_nb, channelsOUT, channelsIN, kernelSizeH, kernelSizeW = map(int, kernel.shape)
+
+    # Preparation for group convolutions
+    # Precompute a rotated stack of se2 kernels
+    # With shape: [orientations_nb, kernelSizeH, kernelSizeW, orientations_nb, channelsIN, channelsOUT]
+    kernel_stack = layers.rotate_gconv_kernels(kernel)
+
+    # Group convolutions are done by integrating over [x,y,theta,input-channels] for each translation and rotation of the kernel
+    # We compute this integral by doing standard 2D convolutions (translation part) for each rotated version of the kernel (rotation part)
+    # In order to efficiently do this we use 2D convolutions where the theta
+    # and input-channel axes are merged (thus treating the SE2 image as a 2D
+    # feature map)
+
+    # Prepare the input tensor (merge the orientation and channel axis) for
+    # the 2D convolutions:
+    input_tensor_as_if_2D = torch.reshape(input_tensor, [input_tensor.shape[0], orientations_nb * channelsIN, int(input_tensor.shape[3]), int(input_tensor.shape[4])])
+
+    # Reshape the kernels for 2D convolutions (orientation+channelsIN axis are
+    # merged, rotation+channelsOUT axis are merged)
+    #kernels_as_if_2D = kernel_stack.permute(1, 2, 3, 4, 0, 5)
+    kernels_as_if_2D = torch.reshape(kernel_stack, [orientations_nb * channelsOUT, orientations_nb * channelsIN, kernelSizeH, kernelSizeW])
+
+    # Perform the 2D convolutions
+    layer_output = F.conv2d(input_tensor_as_if_2D.type(torch.cuda.FloatTensor), kernels_as_if_2D.type(torch.cuda.FloatTensor), stride=self.stride, padding=self.padding)
+
+    # Reshape into an SE2 image (split the orientation and channelsOUT axis)
+    layer_output = torch.reshape(layer_output, [layer_output.shape[0],  orientations_nb, channelsOUT, int(layer_output.shape[2]), int(layer_output.shape[3])])
+
+    return layer_output
+
+  def forward(self, input: Tensor) -> Tensor:
+    return self._conv_forward(input, self.kernel)
+
 
 
 def spatial_max_pool(input_tensor, nbOrientations, padding='valid'):
@@ -272,3 +352,79 @@ def spatial_max_pool(input_tensor, nbOrientations, padding='valid'):
   tensor_pooled = torch.cat([torch.unsqueeze(t, 1) for t in activations], axis=1)
 
   return tensor_pooled
+
+
+class NN_spatial_max_pool(nn.Module):
+  def __init__(self, Ntheta: int, ChannelIN):
+    super().__init__()
+
+    self.Ntheta = Ntheta
+    self.ChannelIN = ChannelIN
+    self.activations = [None] * ChannelIN  
+
+  def _conv_forward(self,  input_tensor: Tensor, nbOrientations , in_c):
+
+    tensor_pooled, _ = torch.max(input_tensor,1)
+
+    return tensor_pooled
+
+  def forward(self, input):
+    return self._conv_forward(input, self.Ntheta, self.ChannelIN)
+
+
+class roto_decoder_block(nn.Module):
+  def __init__(self, in_c, out_c, kernel_size, Ntheta, up_sampling_mode):
+    super().__init__()
+
+    self.Ntheta = Ntheta
+    self.bn = nn.BatchNorm2d(out_c)
+    self.lifting = NN_z2_se2n(in_c, out_c, kernel_size, Ntheta, 1, 'same')
+    self.relu = nn.LeakyReLU(0.2, inplace=True)
+    self.conv = NN_se2n_se2n(out_c, out_c, kernel_size, Ntheta, 1, 'same')
+    self.pool = NN_spatial_max_pool(Ntheta, in_c)
+    self.up = nn.Upsample(scale_factor=2, mode=up_sampling_mode)
+
+  def forward(self, inputs):
+
+    x = self.up(inputs)
+    x = self.lifting(x)
+    x = self.relu(x)
+    x = self.conv(x)
+    x = self.relu(x)
+    x = self.pool(x)
+    #x = torch.reshape(x, [x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]])
+    #x = torch.cat([x[:,i,:,:,:] for i in range(self.Ntheta)],1)
+    x = self.bn(x)
+    x = self.relu(x)
+
+    return x
+
+
+class roto_encoder_block(nn.Module):
+  def __init__(self, in_c, out_c, kernel_size, Ntheta):
+    super().__init__()
+
+    self.Ntheta = Ntheta
+    self.bn = nn.BatchNorm2d(out_c)
+    self.lifting = NN_z2_se2n(in_c, out_c, kernel_size, Ntheta, 1, 'same')
+    self.relu = nn.LeakyReLU(0.2, inplace=True)
+    self.conv = NN_se2n_se2n(out_c, out_c, kernel_size, Ntheta, 1, 'same')
+    self.pool = NN_spatial_max_pool(Ntheta, in_c)
+    self.maxpool = torch.nn.MaxPool2d(2)
+
+  def forward(self, inputs):
+
+    x = self.lifting(inputs)
+    x = self.relu(x)
+    x = self.conv(x)
+    x = self.relu(x)
+    x = self.pool(x)
+    x = self.relu(x)
+    x = self.maxpool(x)
+    #x = torch.reshape(x, [x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]])
+    #x = torch.cat([x[:,i,:,:,:] for i in range(self.Ntheta)],1)
+    x = self.bn(x)
+    x = self.relu(x)
+    #x = self.pool(x)
+
+    return x
