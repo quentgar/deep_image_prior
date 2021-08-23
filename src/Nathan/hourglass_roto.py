@@ -3,6 +3,7 @@ from src.Nathan.layers import *
 from torch import Tensor
 from src.utils import *
 from src.hourglass_network import *
+from torch.nn.parameter import Parameter
 
 class build_hourglass_roto(nn.Module):
     
