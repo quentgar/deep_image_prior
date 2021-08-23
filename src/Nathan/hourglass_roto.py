@@ -1,5 +1,5 @@
 import torch.nn as nn
-from src.Nathan import layers
+from src.Nathan.layers import *
 from torch import Tensor
 from src.utils import *
 from src.hourglass_network import *
