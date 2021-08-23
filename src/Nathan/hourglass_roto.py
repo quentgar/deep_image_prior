@@ -1,3 +1,5 @@
+import torch.nn as nn
+
 class build_hourglass_roto(nn.Module):
     
     def __init__(self,input_depth=32,output_depth=3,
