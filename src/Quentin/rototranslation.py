@@ -3,6 +3,8 @@ import numpy as np
 from RotoTrans import rotation
 import torch.nn.functional as F
 import torch.nn as nn
+from torch.nn.parameter import Parameter
+
 from src.utils import *
 import math as m
 
