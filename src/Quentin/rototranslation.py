@@ -459,7 +459,7 @@ class build_hourglass_roto(nn.Module):
                  num_channels_skip=[4, 4, 4, 4, 4], 
                  filter_size_down=3, filter_size_up=3, filter_skip_size=1,
                  num_scales=5, up_samp_mode='bilinear', need1x1_up=True, need_sigmoid=True, pooling=False,
-                 orientations_nb=4, filter_roto=5, etages_roto=[num_sclaes-1]):
+                 orientations_nb=4, filter_roto=5, etages_roto=[]):
         super().__init__()
 
         num_channels_down = [num_channels_down]*num_scales if isinstance(num_channels_down, int) else num_channels_down
