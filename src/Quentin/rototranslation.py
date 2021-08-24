@@ -343,6 +343,9 @@ class roto_block(nn.Module):
                dtype = torch.cuda.FloatTensor):
     super().__init__()
 
+    self.orientations_nb = orientations_nb
+    self.channelsOUT = channelsOUT
+
     self.lifting = lifting_block(channelsIN, channelsOUT, kSize, orientations_nb,
                                  periodicity=2 * np.pi, diskMask=True, padding=padding,
                                  dtype = torch.cuda.FloatTensor)
@@ -351,6 +354,8 @@ class roto_block(nn.Module):
                              periodicity=2 * np.pi, diskMask=True, padding=padding,
                              dtype = torch.cuda.FloatTensor)
     
+    self.spatial_max_pool = spatial_max_pool(orientations_nb, channelsOUT, padding=0, stride=2)
+
     self.relu = nn.LeakyReLU(0.2, inplace=True)
     self.up = nn.Upsample(scale_factor=2, mode='nearest')
     self.bn = nn.BatchNorm2d(channelsOUT)
@@ -361,19 +366,28 @@ class roto_block(nn.Module):
     x = self.up(x)
 
     x = self.lifting(x)
-    #x = self.relu(x)
 
+    # Batch normalization, fusion des axes Orientations et ChannelsOUT
+    x = torch.reshape(x, (x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]))
+    x = self.bn(x)
+    x = self.relu(x)
+
+    # Remise en forme tenseur SE2
+    x = torch.reshape(x, (x.shape[0], self.orientations_nb, self.channelsOUT, x.shape[3], x.shape[4]))
     x = self.gconv(x)
-    #x = self.relu(x)
 
-    # SHAPE [BatchSize, nbOrientations, ChannelsIN, Height, Width]
+    x = torch.reshape(x, (x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]))
+    x = self.bn(x)
+    x = self.relu(x)
 
+    # Remise en forme tenseur SE2
+    x = torch.reshape(x, (x.shape[0], self.orientations_nb, self.channelsOUT, x.shape[3], x.shape[4]))
+
+    # SHAPE [BatchSize, nbOrientations, ChannelsOUT, Height, Width]
+    # Max sur la dimension des rotations
     x, id = torch.max(x,1)
 
-    # SHAPE [BatchSize, ChannelsIN, Height, Width]
-
-    # Fusion des axes de rotations et channelsOUT
-    # x = torch.reshape(x, [x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]])
+    # SHAPE [BatchSize, ChannelsOUT, Height, Width]
 
     x = self.bn(x)
     x = self.relu(x)
@@ -387,6 +401,9 @@ class roto_block_noskip(nn.Module):
                dtype = torch.cuda.FloatTensor):
     super().__init__()
 
+    self.orientations_nb = orientations_nb
+    self.channelsOUT = channelsOUT
+
     self.lifting = lifting_block(channelsIN, channelsOUT, kSize, orientations_nb,
                                  periodicity=2 * np.pi, diskMask=True, padding=padding,
                                  dtype = torch.cuda.FloatTensor)
@@ -395,6 +412,8 @@ class roto_block_noskip(nn.Module):
                              periodicity=2 * np.pi, diskMask=True, padding=padding,
                              dtype = torch.cuda.FloatTensor)
     
+    self.spatial_max_pool = spatial_max_pool(orientations_nb, channelsOUT, padding=0, stride=2)
+
     self.relu = nn.LeakyReLU(0.2, inplace=True)
     self.up = nn.Upsample(scale_factor=2, mode='nearest')
     self.bn = nn.BatchNorm2d(channelsOUT)
@@ -404,19 +423,28 @@ class roto_block_noskip(nn.Module):
     x = self.up(input)
 
     x = self.lifting(x)
-    #x = self.relu(x)
 
+    # Batch normalization, fusion des axes Orientations et ChannelsOUT
+    x = torch.reshape(x, (x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]))
+    x = self.bn(x)
+    x = self.relu(x)
+
+    # Remise en forme tenseur SE2
+    x = torch.reshape(x, (x.shape[0], self.orientations_nb, self.channelsOUT, x.shape[3], x.shape[4]))
     x = self.gconv(x)
-    #x = self.relu(x)
 
-    # SHAPE [BatchSize, nbOrientations, ChannelsIN, Height, Width]
+    x = torch.reshape(x, (x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]))
+    x = self.bn(x)
+    x = self.relu(x)
 
+    # Remise en forme tenseur SE2
+    x = torch.reshape(x, (x.shape[0], self.orientations_nb, self.channelsOUT, x.shape[3], x.shape[4]))
+
+    # SHAPE [BatchSize, nbOrientations, ChannelsOUT, Height, Width]
+    # Max sur la dimension des rotations
     x, id = torch.max(x,1)
 
-    # SHAPE [BatchSize, ChannelsIN, Height, Width]
-
-    # Fusion des axes de rotations et channelsOUT
-    # x = torch.reshape(x, [x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]])
+    # SHAPE [BatchSize, ChannelsOUT, Height, Width]
 
     x = self.bn(x)
     x = self.relu(x)
