@@ -481,38 +481,41 @@ class build_hourglass_roto(nn.Module):
           """ Encoder et Skip"""
           if i == 0:
             attributes.append(('e'+str(i+1),encoder_block(input_depth, num_channels_down[0],filter_size_down, stride).type(torch.cuda.FloatTensor)))
-            #attributes.append(('e'+str(i+1),roto_block(input_depth, num_channels_down[0]//orientations_nb, filter_roto, orientations_nb).type(torch.cuda.FloatTensor)))
             if num_channels_skip[i] != 0: # Ne pas créer de bloc skip s'il n'en existe pas
               attributes.append(('s'+str(i+1),conv_block(num_channels_down[0], num_channels_skip[i], filter_skip_size).type(torch.cuda.FloatTensor)))
           else:
             attributes.append(('e'+str(i+1),encoder_block(num_channels_down[i-1], num_channels_down[i], filter_size_down, stride).type(torch.cuda.FloatTensor)))
-            #attributes.append(('e'+str(i+1),roto_block(num_channels_down[i-1], num_channels_down[i]//orientations_nb, filter_roto, orientations_nb).type(torch.cuda.FloatTensor)))
             if num_channels_skip[i] != 0:
               attributes.append(('s'+str(i+1),conv_block(num_channels_down[i], num_channels_skip[i], filter_skip_size).type(torch.cuda.FloatTensor)))
 
           """ Decoder """
           if i == (num_scales-1):
+              
             "Fond du réseau"
             if num_channels_skip[i] != 0:
-              #attributes.append(('d'+str(i+1),roto_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_roto, orientations_nb).type(torch.cuda.FloatTensor)))
-              attributes.append(('d'+str(i+1),decoder_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
+              if i in etages_roto:
+                  attributes.append(('d'+str(i+1),roto_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_roto, orientations_nb).type(torch.cuda.FloatTensor)))
+              else:
+                  attributes.append(('d'+str(i+1),decoder_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
             else: # Pas de skip
-              #attributes.append(('d'+str(i+1),roto_block_noskip(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_roto, orientations_nb).type(torch.cuda.FloatTensor)))
-              attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
-          elif i == 2:
-            if num_channels_skip[i] != 0:
-              attributes.append(('d'+str(i+1),roto_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_roto, orientations_nb).type(torch.cuda.FloatTensor))) 
-            else: # Pas de skip
-              attributes.append(('d'+str(i+1),roto_block_noskip(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_roto, orientations_nb).type(torch.cuda.FloatTensor))) 
-          else:
-            if num_channels_skip[i] != 0:
-              attributes.append(('d'+str(i+1),decoder_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
+              if i in etages_roto:
+                  attributes.append(('d'+str(i+1),roto_block_noskip(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_roto, orientations_nb).type(torch.cuda.FloatTensor)))
+              else:
+                  attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_down[i]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
+
             else:
-              attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))  
-            
-                     
+                if num_channels_skip[i] != 0:
+                  if i in etages_roto:
+                      attributes.append(('d'+str(i+1),roto_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_roto, orientations_nb).type(torch.cuda.FloatTensor))) 
+                  else:
+                      attributes.append(('d'+str(i+1),decoder_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))
+                else:
+                  if i in etages_roto:
+                      attributes.append(('d'+str(i+1),roto_block_noskip(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_roto, orientations_nb).type(torch.cuda.FloatTensor))) 
+                  else:
+                      attributes.append(('d'+str(i+1),decoder_noskip_block(num_channels_up[i+1]+num_channels_skip[i], num_channels_up[i], filter_size_up, up_sampling_mode=up_samp_mode, need1x1_up=need1x1_up).type(torch.cuda.FloatTensor)))  
 
-
+                
         for key, value in attributes:
           setattr(self, key, value)
 
