@@ -357,6 +357,7 @@ class roto_block(nn.Module):
     self.relu = nn.LeakyReLU(0.2, inplace=True)
     self.up = nn.Upsample(scale_factor=2, mode='nearest')
     self.bn = nn.BatchNorm2d(channelsOUT*orientations_nb)
+    self.bn2 = nn.BatchNorm2d(channelsOUT)
 
   def forward(self, input, skip):
 
@@ -387,7 +388,7 @@ class roto_block(nn.Module):
 
     # SHAPE [BatchSize, ChannelsOUT, Height, Width]
 
-    x = self.bn(x)
+    x = self.bn2(x)
     x = self.relu(x)
 
     return x
@@ -413,6 +414,7 @@ class roto_block_noskip(nn.Module):
     self.relu = nn.LeakyReLU(0.2, inplace=True)
     self.up = nn.Upsample(scale_factor=2, mode='nearest')
     self.bn = nn.BatchNorm2d(channelsOUT*orientations_nb)
+    self.bn2 = nn.BatchNorm2d(channelsOUT)
 
   def forward(self, input):
 
@@ -442,7 +444,7 @@ class roto_block_noskip(nn.Module):
 
     # SHAPE [BatchSize, ChannelsOUT, Height, Width]
 
-    x = self.bn(x)
+    x = self.bn2(x)
     x = self.relu(x)
 
     return x
