@@ -450,6 +450,7 @@ class roto_block_noskip(nn.Module):
     return x
 
 class build_hourglass_roto(nn.Module):
+    """ etages_roto liste pour i dans [0..num_scales-1] num_scales-1 étant le fond du réseau et 0 la couche la plus haute """
     
     def __init__(self,input_depth=32,output_depth=3,
                  num_channels_down=[16, 32, 64, 128, 128], num_channels_up=[16, 32, 64, 128, 128],
