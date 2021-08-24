@@ -61,8 +61,9 @@ def rotate_lifting_kernels(kernel, orientations_nb, periodicity=2 * np.pi, diskM
 
     # Reshaping
     # Resulting shape: [nbOrientations, channelsOUT, channelsIN, kernelSizeH, kernelSizeW]
-    set_of_rotated_kernels = torch.reshape(set_of_rotated_kernels, [orientations_nb, channelsOUT, channelsIN, kernelSizeH, kernelSizeW])
-
+    set_of_rotated_kernels = torch.reshape(set_of_rotated_kernels, [orientations_nb, kernelSizeH, kernelSizeW, channelsIN, channelsOUT])
+    set_of_rotated_kernels = set_of_rotated_kernels.permute(0,4,3,1,2)
+    
     return set_of_rotated_kernels
 
 
