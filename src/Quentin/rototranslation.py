@@ -185,7 +185,7 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
 class lifting_block(nn.Module):
 
   def __init__(self, channelsIN, channelsOUT, kSize, orientations_nb,
-               periodicity=2 * np.pi, diskMask=True, padding=1,
+               periodicity=2 * np.pi, diskMask=True, padding='same',
                dtype = torch.cuda.FloatTensor):
 
     super().__init__()
@@ -270,7 +270,7 @@ class lifting_block(nn.Module):
 class gconv_block(nn.Module):
 
   def __init__(self, channelsIN, channelsOUT, kSize, orientations_nb,
-               periodicity=2 * np.pi, diskMask=True, padding=1,
+               periodicity=2 * np.pi, diskMask=True, padding='same',
                dtype = torch.cuda.FloatTensor):
 
     super().__init__()
@@ -339,7 +339,7 @@ class gconv_block(nn.Module):
 class roto_block(nn.Module):
 
   def __init__(self, channelsIN, channelsOUT, kSize, orientations_nb,
-               periodicity=2 * np.pi, diskMask=True, padding=1,
+               periodicity=2 * np.pi, diskMask=True, padding='same',
                dtype = torch.cuda.FloatTensor):
     super().__init__()
 
@@ -396,7 +396,7 @@ class roto_block(nn.Module):
 class roto_block_noskip(nn.Module):
 
   def __init__(self, channelsIN, channelsOUT, kSize, orientations_nb,
-               periodicity=2 * np.pi, diskMask=True, padding=1,
+               periodicity=2 * np.pi, diskMask=True, padding='same',
                dtype = torch.cuda.FloatTensor):
     super().__init__()
 
