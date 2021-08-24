@@ -345,6 +345,8 @@ class roto_block(nn.Module):
                dtype = torch.cuda.FloatTensor):
     super().__init__()
 
+    padding = int(kSize-1/2))
+
     self.orientations_nb = orientations_nb
     self.channelsOUT = channelsOUT
 
@@ -398,9 +400,11 @@ class roto_block(nn.Module):
 class roto_block_noskip(nn.Module):
 
   def __init__(self, channelsIN, channelsOUT, kSize, orientations_nb,
-               periodicity=2 * np.pi, diskMask=True, padding='same',
+               periodicity=2 * np.pi, diskMask=True,
                dtype = torch.cuda.FloatTensor):
     super().__init__()
+
+    padding = int(kSize-1/2))
 
     self.orientations_nb = orientations_nb
     self.channelsOUT = channelsOUT
