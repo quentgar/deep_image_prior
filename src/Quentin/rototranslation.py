@@ -371,7 +371,7 @@ class roto_block(nn.Module):
     x = self.relu(x)
 
     # Remise en forme tenseur SE2
-    x = torch.reshape(x, (x.shape[0], self.orientations_nb, self.channelsOUT, x.shape[3], x.shape[4]))
+    x = torch.reshape(x, (x.shape[0], self.orientations_nb, self.channelsOUT, x.shape[2], x.shape[3]))
     x = self.gconv(x)
 
     x = torch.reshape(x, (x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]))
@@ -379,7 +379,7 @@ class roto_block(nn.Module):
     x = self.relu(x)
 
     # Remise en forme tenseur SE2
-    x = torch.reshape(x, (x.shape[0], self.orientations_nb, self.channelsOUT, x.shape[3], x.shape[4]))
+    x = torch.reshape(x, (x.shape[0], self.orientations_nb, self.channelsOUT, x.shape[2], x.shape[3]))
 
     # SHAPE [BatchSize, nbOrientations, ChannelsOUT, Height, Width]
     # Max sur la dimension des rotations
@@ -426,7 +426,7 @@ class roto_block_noskip(nn.Module):
     x = self.relu(x)
 
     # Remise en forme tenseur SE2
-    x = torch.reshape(x, (x.shape[0], self.orientations_nb, self.channelsOUT, x.shape[3], x.shape[4]))
+    x = torch.reshape(x, (x.shape[0], self.orientations_nb, self.channelsOUT, x.shape[2], x.shape[3]))
     x = self.gconv(x)
 
     x = torch.reshape(x, (x.shape[0], x.shape[1]*x.shape[2], x.shape[3], x.shape[4]))
@@ -434,7 +434,7 @@ class roto_block_noskip(nn.Module):
     x = self.relu(x)
 
     # Remise en forme tenseur SE2
-    x = torch.reshape(x, (x.shape[0], self.orientations_nb, self.channelsOUT, x.shape[3], x.shape[4]))
+    x = torch.reshape(x, (x.shape[0], self.orientations_nb, self.channelsOUT, x.shape[2], x.shape[3]))
 
     # SHAPE [BatchSize, nbOrientations, ChannelsOUT, Height, Width]
     # Max sur la dimension des rotations
