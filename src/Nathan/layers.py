@@ -236,7 +236,7 @@ class NN_se2n_se2n(nn.Module):
 
     # Preparation for group convolutions
     # Precompute a rotated stack of se2 kernels
-    # With shape: [orientations_nb, kernelSizeH, kernelSizeW, orientations_nb, channelsIN, channelsOUT]
+    # With shape: [orientations_nb, channelsOUT, channelsIN, orientations_nb, kernelSizeH, kernelSizeW]
     kernel_stack = rotate_gconv_kernels(kernel)
 
     # Group convolutions are done by integrating over [x,y,theta,input-channels] for each translation and rotation of the kernel
