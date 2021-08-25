@@ -178,9 +178,9 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
   # Matrix multiplication (each 2D plane is now rotated)
   # Resulting shape: [nbOrientations*kernelSizeH*kernelSizeW, orientations_nb*channelsIN*channelsOUT]
   kernels_planar_rotated = torch.sparse.mm(rotOp_matrix.type(torch.cuda.FloatTensor), kernel_flat.type(torch.cuda.FloatTensor))
-  kernels_planar_rotated = torch.reshape(kernels_planar_rotated, [orientations_nb, kernelSizeH, kernelSizeW, orientations_nb, channelsIN, channelsOUT])
+  kernels_planar_rotated = torch.reshape(kernels_planar_rotated, [orientations_nb, kernelSizeH, kernelSizeW, orientations_nb, channelsOUT, channelsIN])
   # Resulting shape: [orientations_nb,channelsOUT,channelsIN,orientations_nb,kernelSizeH,kernelSizeW]
-  kernels_planar_rotated = kernels_planar_rotated.permute(3,5,4,0,1,2)
+  kernels_planar_rotated = kernels_planar_rotated.permute(3,4,5,0,1,2)
 
   # PART 2 (shift in theta direction)
   set_of_rotated_kernels = [None] * orientations_nb
