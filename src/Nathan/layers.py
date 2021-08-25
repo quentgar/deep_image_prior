@@ -30,7 +30,6 @@ def rotate_lifting_kernels(kernel, orientations_nb, periodicity=2 * np.pi, diskM
 
     # Unpack the shape of the input kernel
     channelsOUT, channelsIN, kernelSizeH, kernelSizeW = map(int, kernel.shape)
-    #print("Z2-SE2N BASE KERNEL SHAPE:", kernel.shape)  # Debug
 
     # Flatten the baseline kernel
     # Resulting shape: [channelsIN*channelsOUT, kernelSizeH*kernelSizeW]
@@ -251,7 +250,6 @@ class NN_se2n_se2n(nn.Module):
 
     # Reshape the kernels for 2D convolutions (orientation+channelsIN axis are
     # merged, rotation+channelsOUT axis are merged)
-    #kernels_as_if_2D = kernel_stack.permute(1, 2, 3, 4, 0, 5)
     kernels_as_if_2D = torch.reshape(kernel_stack, [orientations_nb * channelsOUT, orientations_nb * channelsIN, kernelSizeH, kernelSizeW])
 
     # Perform the 2D convolutions
