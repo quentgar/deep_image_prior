@@ -352,11 +352,11 @@ class roto_block(nn.Module):
     self.channelsOUT = channelsOUT
 
     self.lifting = lifting_block(channelsIN, channelsOUT, kSize, orientations_nb,
-                                 periodicity=2 * np.pi, diskMask=True, padding=padding,
+                                 periodicity=periodicity, diskMask=True, padding=padding,
                                  dtype = torch.cuda.FloatTensor)
     
     self.gconv = gconv_block(channelsOUT, channelsOUT, kSize, orientations_nb,
-                             periodicity=2 * np.pi, diskMask=True, padding=padding,
+                             periodicity=periodicity, diskMask=True, padding=padding,
                              dtype = torch.cuda.FloatTensor)
 
     self.relu = nn.LeakyReLU(0.2, inplace=True)
@@ -412,11 +412,11 @@ class roto_block_noskip(nn.Module):
     self.channelsOUT = channelsOUT
 
     self.lifting = lifting_block(channelsIN, channelsOUT, kSize, orientations_nb,
-                                 periodicity=2 * np.pi, diskMask=True, padding=padding,
+                                 periodicity=periodicity, diskMask=True, padding=padding,
                                  dtype = torch.cuda.FloatTensor)
     
     self.gconv = gconv_block(channelsOUT, channelsOUT, kSize, orientations_nb,
-                             periodicity=2 * np.pi, diskMask=True, padding=padding,
+                             periodicity=periodicity, diskMask=True, padding=padding,
                              dtype = torch.cuda.FloatTensor)
 
     self.relu = nn.LeakyReLU(0.2, inplace=True)
