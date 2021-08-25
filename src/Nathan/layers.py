@@ -70,7 +70,7 @@ def rotate_lifting_kernels(kernel, orientations_nb, periodicity=2 * np.pi, diskM
 
 
 
-  """ Constructs a group convolutional layer.
+""" Constructs a group convolutional layer.
         (lifting layer from Z2 to SE2N with N input number of orientations)
         INPUT:
             - input_tensor in Z2, a tensorflow Tensor with expected shape:
@@ -87,7 +87,7 @@ def rotate_lifting_kernels(kernel, orientations_nb, periodicity=2 * np.pi, diskM
                 (Height', Width' are reduced sizes due to the valid convolution)
             - kernels_formatted, the formated kernels, i.e., the full stack of rotated kernels with shape:
                 [orientations_nb, ChannelsOUT, ChannelsIN, kernelSize, kernelSize]
-  """ 
+""" 
 
 class NN_z2_se2n(nn.Module):
   def __init__(self, in_c: int, out_c: int, kernel_size: int, Ntheta: int, stride=1, padding='valid') -> None:
@@ -205,7 +205,7 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
 
 
 
-  """ Constructs a group convolutional layer.
+""" Constructs a group convolutional layer.
         (group convolution layer from SE2N to SE2N with N input number of orientations)
         INPUT:
             - input_tensor in SE2n, a tensor flow tensor with expected shape:
@@ -220,7 +220,7 @@ def rotate_gconv_kernels(kernel, periodicity=2 * np.pi, diskMask=True):
             - output_tensor, the tensor after group convolutions with shape
                 [BatchSize, nbOrientations, ChannelsOut, Height', Width']
                 (Height', Width' are the reduced sizes due to the valid convolution)
-  """
+"""
 
 class NN_se2n_se2n(nn.Module):
   def __init__(self, in_c: int, out_c: int, kernel_size: int, Ntheta: int, stride=1, padding='valid') -> None:
