@@ -1,1 +1,1 @@
-# deep_image_prior
+# DIP Image Registration
