@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from RotoTrans import rotation
+from src.rotation import *
 import torch.nn.functional as F
 import torch.nn as nn
 from torch.nn.parameter import Parameter
