@@ -2,7 +2,7 @@ import torch
 import torch.optim
 import torch.nn.functional as F
 import numpy as np
-from RotoTrans import rotation
+from src import rotation
 from torch import Tensor
 from torch.nn.parameter import Parameter
 import math as m
